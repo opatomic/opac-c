@@ -1,0 +1,170 @@
+/*
+ * Copyright 2018-2019 Opatomic
+ * Open sourced with ISC license. Refer to LICENSE for details.
+ */
+
+#include <stdint.h>
+#include "base64.h"
+
+const char* const ENC_TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const uint8_t DEC_TABLE[256] = {
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x3E, 0xFF, 0xFF, 0xFF, 0x3F,
+	0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
+	0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
+	0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+};
+
+size_t base64EncodeLen(size_t srcLen, int appendEquals) {
+	if (appendEquals) {
+		return ((srcLen + 2) / 3) * 4;
+	}
+	size_t rem = srcLen % 3;
+	return ((srcLen / 3) * 4) + (rem == 0 ? 0 : (rem + 1));
+}
+
+void base64Encode(const void* src, size_t srcLen, void* dst, int appendEquals) {
+	const uint8_t* src8 = src;
+	uint8_t* dst8 = dst;
+	const uint8_t* end = src8 + srcLen;
+	const uint8_t* stop = srcLen >= 2 ? end - 2 : src8;
+	for (; src8 < stop; src8 += 3, dst8 += 4) {
+		uint8_t v0 = src8[0];
+		uint8_t v1 = src8[1];
+		uint8_t v2 = src8[2];
+		dst8[0] = ENC_TABLE[(v0 & 0xFC) >> 2];
+		dst8[1] = ENC_TABLE[((v0 & 0x03) << 4) | ((v1 & 0xF0) >> 4)];
+		dst8[2] = ENC_TABLE[((v1 & 0x0F) << 2) | ((v2 & 0xC0) >> 6)];
+		dst8[3] = ENC_TABLE[v2 & 0x3F];
+	}
+	if (src8 < end) {
+		dst8[0] = ENC_TABLE[(src8[0] & 0xFC) >> 2];
+		if (src8 + 1 == end) {
+			dst8[1] = ENC_TABLE[(src8[0] & 0x03) << 4];
+			if (appendEquals) {
+				dst8[2] = '=';
+				dst8[3] = '=';
+			}
+		} else {
+			dst8[1] = ENC_TABLE[((src8[0] & 0x03) << 4) | ((src8[1] & 0xF0) >> 4)];
+			dst8[2] = ENC_TABLE[((src8[1] & 0x0F) << 2)];
+			if (appendEquals) {
+				dst8[3] = '=';
+			}
+		}
+	}
+}
+
+size_t base64DecodeLen(const void* src, size_t srcLen) {
+	const uint8_t* src8 = src;
+	if (srcLen > 0 && src8[srcLen - 1] == '=') {
+		srcLen--;
+	}
+	if (srcLen > 0 && src8[srcLen - 1] == '=') {
+		srcLen--;
+	}
+	size_t extra = srcLen % 4;
+	return ((srcLen / 4) * 3) + (extra == 0 ? 0 : (extra - 1));
+}
+
+int base64Decode(const void* src, size_t srcLen, void* dst) {
+	const uint8_t* src8 = src;
+	uint8_t* dst8 = dst;
+	if (srcLen > 0 && src8[srcLen - 1] == '=') {
+		srcLen--;
+	}
+	if (srcLen > 0 && src8[srcLen - 1] == '=') {
+		srcLen--;
+	}
+	const uint8_t* end = src8 + srcLen;
+	const uint8_t* stop = srcLen >= 3 ? end - 3 : src8;
+	for (; src8 < stop; src8 += 4, dst8 += 3) {
+		uint8_t v0 = DEC_TABLE[src8[0]];
+		uint8_t v1 = DEC_TABLE[src8[1]];
+		uint8_t v2 = DEC_TABLE[src8[2]];
+		uint8_t v3 = DEC_TABLE[src8[3]];
+		if ((v0 | v1 | v2 | v3) & 0xC0) {
+			// invalid encoding
+			return 0;
+		}
+		dst8[0] = (v0 << 2) | (v1 >> 4);
+		dst8[1] = ((v1 & 0x0F) << 4) | (v2 >> 2);
+		dst8[2] = ((v2 & 0x03) << 6) | (v3);
+	}
+	if (src8 < end) {
+		if (src8 + 1 == end) {
+			// wrong number of bytes
+			return 0;
+		}
+		uint8_t v0 = DEC_TABLE[src8[0]];
+		uint8_t v1 = DEC_TABLE[src8[1]];
+		uint8_t v2 = src8 + 2 < end ? DEC_TABLE[src8[2]] : 0;
+		if ((v0 | v1 | v2) & 0xC0) {
+			// invalid encoding
+			return 0;
+		}
+		dst8[0] = (v0 << 2) | (v1 >> 4);
+		if (src8 + 2 < end) {
+			dst8[1] = ((v1 & 0x0F) << 4) | (v2 >> 2);
+			if (v2 & 0x03) {
+				// last byte has extra bits set
+				return 0;
+			}
+		} else {
+			if (v1 & 0x0F) {
+				// last byte has extra bits set
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+
+/*
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+static void base64Test2(const char* str, int appendEquals) {
+	size_t slen = strlen(str);
+	for (size_t i = 1; i < slen; ++i) {
+		size_t encLen = base64EncodeLen(i, appendEquals);
+		uint8_t encBuff[encLen];
+		base64Encode((const uint8_t*) str, i, encBuff, appendEquals);
+		size_t decLen = base64DecodeLen(encBuff, encLen);
+		uint8_t decBuff[decLen];
+		base64Decode(encBuff, encLen, decBuff);
+		assert(decLen == i && memcmp(str, decBuff, decLen) == 0);
+	}
+}
+
+void base64Test(void) {
+	base64Test2(ENC_TABLE, 0);
+	base64Test2(ENC_TABLE, 1);
+}
+
+void printDecTable(void) {
+	uint8_t t[256];
+	memset(t, 0xFF, sizeof(t));
+	for (int i = 0; i < 64; ++i) {
+		t[(uint8_t)ENC_TABLE[i]] = i;
+	}
+	for (int i = 0; i < 16; ++i) {
+		for (int j = 0; j < 16; ++j) {
+			printf("0x%02X, ", t[i*16 + j]);
+		}
+		printf("\n");
+	}
+}
+*/

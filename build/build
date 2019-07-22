@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# libopac.a is placed in "out" directory
+
+# requirement to build on ubuntu:
+#   sudo apt-get install build-essential
+
+# variables that can be set:
+#   CFLAGS   extra args to pass to compiler during compile stage
+#   CC       program/command to compile (default cc)
+#   AR       program/command to archive (default ar)
+#   ARFLAGS  flags to pass to AR program (default rcs)
+
+# to build for win64 on ubuntu:
+#   sudo apt-get install mingw-w64
+#   CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar ./build
+# to target 32-bit from 64-bit ubuntu:
+#   sudo apt-get install gcc-multilib
+#   CFLAGS="-march=i386 -m32" ./build
+# to use GMP rather than libtommath:
+#   sudo apt-get install libgmp3-dev
+#   CFLAGS="-DOPA_USEGMP" ./build
+# to disable threading support:
+#   CFLAGS="-DOPA_NOTHREADS" ./build
+
+. opabuildutil.sh
+
+TMPDIR="$PWD/tmp"
+OUTDIR="$PWD/out"
+
+GCCOPTS="-std=c99 -O2 -g"
+#GCCOPTS="$GCCOPTS -fno-strict-aliasing"
+
+INCS="-I./ -I../deps/libtommath"
+
+ensuredir $OUTDIR
+cleandir $TMPDIR
+CFLAGS="$CFLAGS $(testgccopt -fno-lto)" buildcfile wrapmemcpy.c $TMPDIR
+builddir "../src" $TMPDIR
+rm -f "$OUTDIR/libopac.a"
+$AR $ARFLAGS "$OUTDIR/libopac.a" $TMPDIR/*.o
+deldir $TMPDIR
+
