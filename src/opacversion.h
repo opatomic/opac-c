@@ -1,1 +1,1 @@
-#define OPAC_VERSION "0.1.1"
+#define OPAC_VERSION "0.1.2"
