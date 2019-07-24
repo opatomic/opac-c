@@ -266,15 +266,15 @@ static int oparbStrUnescape(const char* s, const char* end, opabuff* b) {
 					} else if (uchar < 0x0800) {
 						err = opabuffAppend1(b, 0xC0 | ((uchar >> 6) & 0x1F));
 						if (!err) {
-							err = opabuffAppend1(b, 0x80 | (ch & 0x3F));
+							err = opabuffAppend1(b, 0x80 | (uchar & 0x3F));
 						}
 					} else {
-						err = opabuffAppend1(b, 0xE0 | ((ch >> 12) & 0x0F));
+						err = opabuffAppend1(b, 0xE0 | ((uchar >> 12) & 0x0F));
 						if (!err) {
-							err = opabuffAppend1(b, 0x80 | ((ch >> 6) & 0x3F));
+							err = opabuffAppend1(b, 0x80 | ((uchar >> 6) & 0x3F));
 						}
 						if (!err) {
-							err = opabuffAppend1(b, 0x80 | (ch & 0x3F));
+							err = opabuffAppend1(b, 0x80 | (uchar & 0x3F));
 						}
 					}
 					s += 4;
