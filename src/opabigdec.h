@@ -38,9 +38,9 @@ int opabigdecMul(const opabigdec* a, const opabigdec* b, opabigdec* result);
 int opabigdecLoadSO(opabigdec* bd, const uint8_t* so);
 size_t opabigdecStoreSO(const opabigdec* val, uint8_t* buff, size_t buffLen);
 
-int opabigdecFromStr(opabigdec* v, const char* str);
-size_t opabigdecMaxStringLen(const opabigdec* a);
-int opabigdecToString(const opabigdec* a, char* str, size_t maxLen);
+int opabigdecFromStr(opabigdec* v, const char* str, int radix);
+size_t opabigdecMaxStringLen(const opabigdec* a, int radix);
+int opabigdecToString(const opabigdec* a, char* str, int radix, size_t space);
 
 
 #endif

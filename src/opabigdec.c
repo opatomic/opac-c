@@ -16,6 +16,9 @@
 
 #define OPABIGDEC_BIGENDIAN 1
 
+#ifndef OPABIGDEC_MAXSTRZS
+#define OPABIGDEC_MAXSTRZS 6
+#endif
 
 
 int opabigdecConvertErr(int tomerr) {
@@ -320,25 +323,17 @@ int opabigdecMul(const opabigdec* a, const opabigdec* b, opabigdec* result) {
 }
 
 static int opabigdecImport3(opabigdec* bd, const uint8_t* src, size_t numBytes, int isNeg, int isBigEndian, int32_t exponent) {
-	//OASSERT(bytesPerWord > 0 && bytesPerWord <= 8);
 	int endian = isBigEndian ? 1 : -1;
 	int tomerr = mp_import(&bd->significand, numBytes, endian, 1, endian, 0, src);
 	if (tomerr != MP_OKAY) {
 		return opabigdecConvertErr(tomerr);
 	}
-	//bd->significand.sign = isNeg ? MP_NEG : MP_ZPOS;
 	if (isNeg) {
 		opabigdecNegate(bd);
 	}
 	bd->exponent = mp_iszero(&bd->significand) ? 0 : exponent;
 	return 0;
 }
-
-//static uint8_t loadBit(const mp_int* val, size_t bitPos) {
-//	size_t digIdx = bitPos / DIGIT_BIT;
-//	size_t bitIdx = bitPos % DIGIT_BIT;
-//	return (val->dp[digIdx] & (((mp_digit)1) << bitIdx)) >> bitIdx;
-//}
 
 static int opabigdecLoadVarint(opabigdec* bd, const uint8_t* so, int isNeg) {
 	uint64_t val;
@@ -420,10 +415,6 @@ int opabigdecLoadSO(opabigdec* bd, const uint8_t* so) {
 		default: return OPA_ERR_INVARG;
 	}
 }
-
-
-
-
 
 // exports without needing a copy of the value. therefore, no error will occur due to memory allocation
 // can only export in word chunks of 1 byte
@@ -552,33 +543,11 @@ size_t opabigdecStoreSO(const opabigdec* val, uint8_t* buff, size_t buffLen) {
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int opabigdecFromStr(opabigdec* v, const char* str) {
-	// only support base 10 for now. cannot mix hex chars with e/E exponent separator
-	unsigned int radix = 10;
+int opabigdecFromStr(opabigdec* v, const char* str, int radix) {
+	if (radix < 2 || radix > 10) {
+		// only support up to base 10 for now. cannot mix hex chars with e/E exponent separator
+		return OPA_ERR_INVARG;
+	}
 
 	int tomerr;
 	int neg;
@@ -677,8 +646,7 @@ static size_t opabigdecCharsPerBit(size_t bits, int radix) {
 	return chars;
 }
 
-size_t opabigdecMaxStringLen(const opabigdec* a) {
-	int radix = 10;
+size_t opabigdecMaxStringLen(const opabigdec* a, int radix) {
 	// TODO: use mp_radix_size()? it uses division so will be slower but is exact. code currently gives approximation
 	size_t chars = opabigdecCharsPerBit(mp_count_bits(&a->significand), radix);
 
@@ -698,6 +666,9 @@ size_t opabigdecMaxStringLen(const opabigdec* a) {
 			++chars;
 			currExp = currExp / radix;
 		}
+
+		// account for possible prefix or suffix
+		chars += 2 + OPABIGDEC_MAXSTRZS;
 	}
 	// extra char for null
 	++chars;
@@ -714,52 +685,113 @@ static void opabigdecReverseStr(char* s, size_t len) {
 	}
 }
 
-int opabigdecToString(const opabigdec* a, char* str, size_t maxLen) {
-	// only support base 10 for now. cannot mix hex chars with e/E exponent separator
-	// TODO: use 'p' instead of 'e' for hex string?
-	char radix = 10;
+static void opabigDecAppendExp(int32_t exp, char radix, char* str, size_t maxLen) {
+	OASSERT(maxLen > 0);
 
-	if (maxLen > INT_MAX) {
-		maxLen = INT_MAX;
+	if (maxLen > 1) {
+		*str++ = 'E';
+		--maxLen;
 	}
 
-	int err = mp_toradix_n(&a->significand, str, radix, (int) maxLen);
+	uint32_t currVal;
+	if (exp >= 0) {
+		currVal = exp;
+	} else {
+		currVal = 0 - exp;
+		if (maxLen > 1) {
+			*str++ = '-';
+			--maxLen;
+		}
+	}
+
+	char* strStart = str;
+	while (currVal > 0 && maxLen > 1) {
+		char digit = currVal % radix;
+		currVal = currVal / radix;
+		*str++ = '0' + digit;
+		--maxLen;
+	}
+
+	opabigdecReverseStr(strStart, str - strStart);
+
+	*str = 0;
+}
+
+// basic test: ECHO [210e-10 210e-9 210e-8 210e-7 210e-6 210e-5 210e-4 210e-3 210e-2 210e-1 210e0 210e1 210e2 210e3 210e4 210e5 210e6 210e7 210e8 210e9 210e10]
+int opabigdecToString(const opabigdec* a, char* str, int radix, size_t space) {
+	if (radix < 2 || radix > 10) {
+		// only support up to base 10 for now. cannot mix hex chars with e/E exponent separator
+		// TODO: use 'p' instead of 'e' for hex string?
+		return OPA_ERR_INVARG;
+	}
+	if (space <= 1) {
+		if (space == 1) {
+			str[0] = 0;
+		}
+		return 0;
+	}
+
+	if (space > INT_MAX) {
+		space = INT_MAX;
+	}
+
+	int err = mp_toradix_n(&a->significand, str, radix, (int) space);
 
 	if (!err && a->exponent != 0) {
 		// skip past the chars that were already written
 		size_t slen = strlen(str);
-		OASSERT(maxLen > slen);
-		str += slen;
-		maxLen -= slen;
+		OASSERT(slen > 0 && space > slen);
 
-		if (maxLen > 1) {
-			*str++ = 'E';
-			--maxLen;
-		}
-
-		// TODO: normalize exponent?
-		uint32_t currVal;
-		if (a->exponent >= 0) {
-			currVal = a->exponent;
+		if (a->exponent > 0) {
+			if (a->exponent <= OPABIGDEC_MAXSTRZS) {
+				// append 0's
+				for (int32_t i = 0; i < a->exponent && slen + 2 <= space; ++i, ++slen) {
+					str[slen] = '0';
+				}
+				str[slen] = 0;
+			} else {
+				// do not append lots of 0's; use E
+				opabigDecAppendExp(a->exponent, radix, str + slen, space - slen);
+			}
 		} else {
-			currVal = 0 - a->exponent;
-			if (maxLen > 1) {
-				*str++ = '-';
-				--maxLen;
+			size_t digsAfterDec = 0 - a->exponent;
+
+			if (digsAfterDec >= slen + OPABIGDEC_MAXSTRZS) {
+				// do not prepend lots of 0's; use E
+				opabigDecAppendExp(a->exponent, radix, str + slen, space - slen);
+			} else {
+				// remove any trailing 0's
+				for (; slen > 1 && str[slen - 1] == '0'; --slen, --digsAfterDec) {
+					str[slen - 1] = 0;
+				}
+
+				if (digsAfterDec >= slen) {
+					// prepend 0. + 0's
+					size_t extra = 2 + digsAfterDec - slen;
+					if (extra > space - 1) {
+						extra = space - 1;
+					}
+					if (extra + slen + 1 > space) {
+						slen = space - extra - 1;
+					}
+					memmove(str + extra, str, slen);
+
+					for (size_t i = 0; i < extra; ++i) {
+						str[i] = i == 1 ? '.' : '0';
+					}
+
+					str[extra + slen] = 0;
+				} else if (digsAfterDec > 0) {
+					// insert '.'
+					char* decPos = str + slen - digsAfterDec;
+					if (slen + 2 >= space) {
+						--digsAfterDec;
+					}
+					memmove(decPos + 1, decPos, digsAfterDec + 1);
+					*decPos = '.';
+				}
 			}
 		}
-
-		char* strStart = str;
-		while (currVal > 0 && maxLen > 1) {
-			char digit = currVal % radix;
-			currVal = currVal / radix;
-			*str++ = '0' + digit;
-			--maxLen;
-		}
-
-		opabigdecReverseStr(strStart, str - strStart);
-
-		*str = 0;
 	} else {
 		err = opabigdecConvertErr(err);
 	}
@@ -767,96 +799,3 @@ int opabigdecToString(const opabigdec* a, char* str, size_t maxLen) {
 	return err;
 }
 
-
-/*
-void opabigdecBenchExtend() {
-	uint64_t t = opaTimeMillis();
-	opabigdec bd;
-	opabigdecInit(&bd);
-	for (int i = 0; i < 10000; ++i) {
-		opabigdecFromStr(&bd, "12345678901234567890123456789012345678901234567890");
-		opabigdecExtend(&bd, 1000);
-	}
-	opabigdecClear(&bd);
-	OPALOGF("time: %ld", opaTimeMillis() - t);
-}
-
-// TODO: prettier strings
-
-static void insertDec(char* str, size_t idx, size_t slen) {
-	memmove(str + idx + 1, str + idx, slen - idx);
-	str[idx] = '.';
-}
-
-char* opabigdecToStringPretty(const opabigdec* a) {
-	if (mp_count_bits(&a->significand) <= 64) {
-		char buff[32];
-		uint64_t val = mp_get_long_long(&a->significand);
-		u64toa(val, buff, 10);
-
-	}
-
-	char* str = NULL;
-
-	// add 2 to max len to account for "0." prefix
-	size_t allocLen = opabigdecMaxStringLen(a) + 2;
-	str = XMALLOC(allocLen);
-	if (str == NULL) {
-		goto error;
-	}
-	int tomerr = mp_toradix_n(&a->significand, str, 10, allocLen);
-	if (tomerr) {
-		goto error;
-	}
-	if (a->exponent == 0) {
-		return str;
-	}
-	size_t slen = strlen(str);
-	if (slen + 3 > allocLen) {
-		goto error;
-	}
-	int skip = mp_isneg(&a->significand) ? 2 : 1;
-	int32_t exp = (0 - a->exponent) + slen - skip;
-	if (a->exponent > 0 && exp >= -6) {
-		if (exp >= 0) {
-			insertDec(str, slen - a->exponent, slen);
-		} else {
-			OASSERT("TODO" && 0);
-		}
-	} else {
-		if (slen - skip >= 1) {
-			//memmove(str + skip + 1, str + skip, slen - skip);
-			//str[skip] = '.';
-			insertDec(str, skip, slen);
-			slen++;
-		}
-		str[slen++] = 'E';
-		i64toa(exp, str + slen, 10);
-	}
-	return str;
-
-	error:
-	XFREE(str);
-	return NULL;
-}
-*/
-
-/*
-void opabigdecPrint(const opabigdec* a) {
-	int err = 0;
-	size_t slen = opabigdecMaxStringLen(a, 10) + 1;
-	char* buff = OPAMALLOC(slen);
-	if (buff == NULL) {
-		err = OPA_ERR_NOMEM;
-	}
-	if (!err) {
-		err = opabigdecToString(a, buff, 10, slen);
-	}
-	if (!err) {
-		printf("%s\n", buff);
-	} else {
-		OPALOGERRF("err %d", err);
-	}
-	OPAFREE(buff);
-}
-*/

@@ -174,7 +174,7 @@ void oparbAddNumStr(oparb* rb, const char* s) {
 		opabigdec bd;
 		rb->err = opabigdecInit(&bd);
 		if (!rb->err) {
-			rb->err = opabigdecFromStr(&bd, s);
+			rb->err = opabigdecFromStr(&bd, s, 10);
 			if (!rb->err) {
 				oparbAddBigDec(rb, &bd);
 			}

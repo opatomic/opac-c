@@ -240,12 +240,12 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 			if (!err) {
 				err = opabigdecLoadSO(&bd, src);
 				if (!err) {
-					size_t maxlen = opabigdecMaxStringLen(&bd);
+					size_t maxlen = opabigdecMaxStringLen(&bd, 10);
 					size_t origLen = opabuffGetLen(b);
 					err = opabuffSetLen(b, origLen + maxlen + 1);
 					if (!err) {
 						char* strpos = (char*) opabuffGetPos(b, origLen);
-						err = opabigdecToString(&bd, strpos, maxlen);
+						err = opabigdecToString(&bd, strpos, 10, maxlen);
 						if (!err) {
 							err = opabuffSetLen(b, origLen + strlen(strpos));
 						}
