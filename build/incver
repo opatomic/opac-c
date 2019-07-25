@@ -22,7 +22,7 @@ if [[ ! `cut -b 1-22 $HVERPATH` == "#define OPAC_VERSION \"" ]]; then
 fi
 VERSION=`cut -d '"' -f2 < $HVERPATH | awk -F '.' '{printf("%d.%d.%d",$1,$2,$3+1)}'`
 
-printf "#define OPAC_VERSION \"$VERSION\"" > "$HVERPATH"
+printf "#define OPAC_VERSION \"$VERSION\"\n" > "$HVERPATH"
 
 # run a build to make sure there's no problems building
 ./build
