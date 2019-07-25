@@ -14,6 +14,11 @@ if [ $MODCNT -ne 0 ]; then
 	exit 1
 fi
 
+if [ "$(git log --oneline $(git describe --tags --abbrev=0)..HEAD | wc -l)" = "0" ]; then
+	echo "No changes since last tag"
+	exit 1
+fi
+
 HVERPATH="../src/opacversion.h"
 
 if [[ ! `cut -b 1-22 $HVERPATH` == "#define OPAC_VERSION \"" ]]; then
