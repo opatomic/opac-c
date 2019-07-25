@@ -70,6 +70,9 @@ static void oparbStartIfNeeded(oparb* rb) {
 			rb->argsStarted = 1;
 		}
 	}
+	if (!rb->err) {
+		rb->isEmptyArray = 0;
+	}
 }
 
 static void oparbWriteVarint(oparb* rb, uint8_t type, uint64_t val) {
@@ -196,6 +199,7 @@ void oparbStartArray(oparb* rb) {
 	oparbStartIfNeeded(rb);
 	oparbAppend1(rb, OPADEF_ARRAY_START);
 	if (!rb->err) {
+		rb->isEmptyArray = 1;
 		++rb->depth;
 	}
 }
@@ -208,7 +212,18 @@ void oparbStopArray(oparb* rb) {
 		}
 		return;
 	}
-	oparbAppend1(rb, OPADEF_ARRAY_END);
+	if (!rb->err && rb->isEmptyArray) {
+		OASSERT(opabuffGetLen(&rb->buff) > 0);
+		uint8_t* prevByte = opabuffGetPos(&rb->buff, opabuffGetLen(&rb->buff) - 1);
+		if (prevByte != NULL) {
+			*prevByte = OPADEF_ARRAY_EMPTY;
+			rb->isEmptyArray = 0;
+		} else {
+			rb->err = OPA_ERR_INVSTATE;
+		}
+	} else {
+		oparbAppend1(rb, OPADEF_ARRAY_END);
+	}
 	if (!rb->err) {
 		--rb->depth;
 	}

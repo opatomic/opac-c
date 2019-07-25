@@ -16,6 +16,7 @@ typedef struct {
 	opabuff buff;         // buff containing raw request
 	char started;
 	char argsStarted;
+	char isEmptyArray;
 	unsigned int depth;
 } oparb;
 
