@@ -23,7 +23,7 @@
 # to disable threading support:
 #   CFLAGS="-DOPA_NOTHREADS" ./build
 
-. opabuildutil.sh
+. ./opabuildutil.sh
 
 TMPDIR="$PWD/tmp"
 OUTDIR="$PWD/out"

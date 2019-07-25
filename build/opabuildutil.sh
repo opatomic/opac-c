@@ -1,13 +1,4 @@
 
-function handleErr {
-	SNAME=$(basename $BASH_SOURCE)
-	echo "$SNAME: Error on line $1"
-	exit 1
-}
-
-trap 'handleErr $LINENO' ERR
-
-
 CC="${CC:-cc}"
 AR="${AR:-ar}"
 ARFLAGS="${ARFLAGS:--rcs}"
@@ -15,12 +6,12 @@ TGTOS="${TGTOS:-$(uname | tr '[:upper:]' '[:lower:]')}"
 
 UNAME="${UNAME:-$(uname | tr '[:upper:]' '[:lower:]')}"
 
-function getnproc {
-	if [[ "$UNAME" = "linux" ]]; then
+getnproc() {
+	if [ "$UNAME" = "linux" ]; then
 		nproc 2>/dev/null || echo 1
-	elif [[ "$UNAME" = "darwin" ]]; then
+	elif [ "$UNAME" = "darwin" ]; then
 		sysctl -n hw.logicalcpu 2>/dev/null || echo 1
-	elif [[ "$UNAME" = "freebsd" ]]; then
+	elif [ "$UNAME" = "freebsd" ]; then
 		sysctl -n hw.ncpu 2>/dev/null || echo 1
 	else
 		echo 1
@@ -29,12 +20,14 @@ function getnproc {
 
 NPROC="${NPROC:-$(getnproc)}"
 
-if [[ -z "$BUILDDIR_MP" && $NPROC -gt 1 ]]; then
+if [ $NPROC -gt 1 ]; then
 	BUILDDIR_MP="${BUILDDIR_MP:-$(($NPROC*4))}"
+else
+	BUILDDIR_MP="${BUILDDIR_MP:-1}"
 fi
 
-function testgccopt {
-	($CC -E -Werror "$1" - < /dev/null &> /dev/null && echo "$1") || echo ""
+testgccopt() {
+	($CC -E -Werror "$1" - < /dev/null > /dev/null 2>&1 && echo "$1") || echo ""
 }
 
 GCCWARN="-Wall -Wextra"
@@ -57,34 +50,27 @@ GCCWARN="$GCCWARN $(testgccopt -Wdouble-promotion)"
 GCCWARN="$GCCWARN $(testgccopt -Wformat=2)"
 
 STRIPALLFLAG="-s"
-if [[ "$UNAME" == "darwin" ]]; then
+if [ "$UNAME" = "darwin" ]; then
 	STRIPALLFLAG=""
 fi
 
 # $1 is .c file
 # $2 is destination directory for .o file
-function buildcfile {
-	trap 'handleErr $LINENO' ERR
-
+buildcfile() {
 	local FNAME=`basename $1 .c`
 	# cd to directory containing .c file so that __FILE__ does not contain directories
-	pushd "`dirname $1`" > /dev/null
-	if [[ "$3" != "MP" ]]; then
+	cd "`dirname $1`" || exit 1
+	if [ "$3" != "MP" ]; then
 		echo "building $FNAME.c"
 	fi
-
-	$CC -c $GCCOPTS $GCCWARN $DEFS $INCS $CFLAGS -o "$2/$FNAME.o" "$FNAME.c"
-	#if [[ $? -ne 0 ]]; then
-	#	exit 1
-	#fi
-	if [[ "$3" = "MP" ]]; then
+	$CC -c $GCCOPTS $GCCWARN $DEFS $INCS $CFLAGS -o "$2/$FNAME.o" "$FNAME.c" || exit 1
+	if [ "$3" = "MP" ]; then
 		echo "built $FNAME.c"
 	fi
-	popd > /dev/null
 }
 
 #function buildcfile {
-#	if [[ "$(jobs -p | wc -l)" -ge $NPROC ]]; then
+#	if [ "$(jobs -p | wc -l)" -ge $NPROC ]; then
 #		wait -n
 #	fi
 #	buildcfile2 $1 $2 "MP" &
@@ -92,22 +78,20 @@ function buildcfile {
 
 # $1 is directory of .c files to build
 # $2 is destination dir
-function builddir {
-	trap 'handleErr $LINENO' ERR
-
-	if [[ "$BUILDDIR_MP" -gt 1 ]]; then
+builddir() {
+	if [ "$BUILDDIR_MP" -gt 1 ]; then
 		local i=0
 		for fname in `ls $1/*.c`; do
 			i=$(($i+1))
 			buildcfile $fname $2 "MP" &
-			if [[ $(($i % $BUILDDIR_MP)) -eq 0 ]]; then
+			if [ $(($i % $BUILDDIR_MP)) -eq 0 ]; then
 				wait
 			fi
 		done
 		wait
 		# determine whether any file failed to build
 		for i in `ls $1/*.c`; do
-			if [[ ! ( -f "$2/$(basename $i .c).o" ) ]]; then
+			if [ ! -f "$2/$(basename $i .c).o" ]; then
 				echo "error occurred; exiting"
 				exit 1
 			fi
@@ -119,20 +103,19 @@ function builddir {
 	fi
 }
 
-function deldir {
-	if [[ -d "$1" ]]; then
+deldir() {
+	if [ -d "$1" ]; then
 		rm -rf "$1"
 	fi
 }
 
-function cleandir {
+cleandir() {
 	deldir "$1"
 	mkdir "$1"
 }
 
-function ensuredir {
-	if [[ ! -d "$1" ]]; then
+ensuredir() {
+	if [ ! -d "$1" ]; then
 		mkdir "$1"
 	fi
 }
-
