@@ -14,11 +14,20 @@ ARFLAGS="${ARFLAGS:--rcs}"
 TGTOS="${TGTOS:-$(uname | tr '[:upper:]' '[:lower:]')}"
 
 UNAME="${UNAME:-$(uname | tr '[:upper:]' '[:lower:]')}"
-if [[ "$UNAME" = "darwin" ]]; then
-	NPROC="${NPROC:-$(sysctl -n hw.logicalcpu)}"
-else
-	NPROC="${NPROC:-$(nproc --all 2>/dev/null)}"
-fi
+
+function getnproc {
+	if [[ "$UNAME" = "linux" ]]; then
+		nproc 2>/dev/null || echo 1
+	elif [[ "$UNAME" = "darwin" ]]; then
+		sysctl -n hw.logicalcpu 2>/dev/null || echo 1
+	elif [[ "$UNAME" = "freebsd" ]]; then
+		sysctl -n hw.ncpu 2>/dev/null || echo 1
+	else
+		echo 1
+	fi
+}
+
+NPROC="${NPROC:-$(getnproc)}"
 
 if [[ -z "$BUILDDIR_MP" && $NPROC -gt 1 ]]; then
 	BUILDDIR_MP="${BUILDDIR_MP:-$(($NPROC*4))}"
@@ -48,7 +57,7 @@ GCCWARN="$GCCWARN $(testgccopt -Wdouble-promotion)"
 GCCWARN="$GCCWARN $(testgccopt -Wformat=2)"
 
 STRIPALLFLAG="-s"
-if [[ `uname | tr '[:upper:]' '[:lower:]'` == "darwin" ]]; then
+if [[ "$UNAME" == "darwin" ]]; then
 	STRIPALLFLAG=""
 fi
 
