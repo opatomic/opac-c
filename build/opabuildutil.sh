@@ -59,6 +59,7 @@ fi
 buildcfile() {
 	local FNAME=`basename $1 .c`
 	# cd to directory containing .c file so that __FILE__ does not contain directories
+	local ORIGDIR=`pwd`
 	cd "`dirname $1`" || exit 1
 	if [ "$3" != "MP" ]; then
 		echo "building $FNAME.c"
@@ -67,6 +68,7 @@ buildcfile() {
 	if [ "$3" = "MP" ]; then
 		echo "built $FNAME.c"
 	fi
+	cd $ORIGDIR
 }
 
 #function buildcfile {
