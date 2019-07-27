@@ -20,8 +20,8 @@ getnproc() {
 
 NPROC="${NPROC:-$(getnproc)}"
 
-if [ $NPROC -gt 1 ]; then
-	BUILDDIR_MP="${BUILDDIR_MP:-$(($NPROC*4))}"
+if [ "$NPROC" -gt 1 ]; then
+	BUILDDIR_MP="${BUILDDIR_MP:-$((NPROC*4))}"
 else
 	BUILDDIR_MP="${BUILDDIR_MP:-1}"
 fi
@@ -57,10 +57,10 @@ fi
 # $1 is .c file
 # $2 is destination directory for .o file
 buildcfile() {
-	local FNAME=`basename $1 .c`
+	FNAME=$(basename "$1" .c)
 	# cd to directory containing .c file so that __FILE__ does not contain directories
-	local ORIGDIR=`pwd`
-	cd "`dirname $1`" || exit 1
+	ORIGDIR=$(pwd)
+	cd "$(dirname "$1")" || exit 1
 	if [ "$3" != "MP" ]; then
 		echo "building $FNAME.c"
 	fi
@@ -68,7 +68,7 @@ buildcfile() {
 	if [ "$3" = "MP" ]; then
 		echo "built $FNAME.c"
 	fi
-	cd $ORIGDIR
+	cd "$ORIGDIR" || exit 1
 }
 
 #function buildcfile {
@@ -82,25 +82,25 @@ buildcfile() {
 # $2 is destination dir
 builddir() {
 	if [ "$BUILDDIR_MP" -gt 1 ]; then
-		local i=0
-		for fname in `ls $1/*.c`; do
-			i=$(($i+1))
-			buildcfile $fname $2 "MP" &
-			if [ $(($i % $BUILDDIR_MP)) -eq 0 ]; then
+		idx=0
+		for fname in "$1"/*.c; do
+			idx=$((idx+1))
+			buildcfile "$fname" "$2" "MP" &
+			if [ $((idx % BUILDDIR_MP)) -eq 0 ]; then
 				wait
 			fi
 		done
 		wait
 		# determine whether any file failed to build
-		for i in `ls $1/*.c`; do
-			if [ ! -f "$2/$(basename $i .c).o" ]; then
+		for i in "$1"/*.c; do
+			if [ ! -f "$2/$(basename "$i" .c).o" ]; then
 				echo "error occurred; exiting"
 				exit 1
 			fi
 		done
 	else
-		for i in `ls $1/*.c`; do
-			buildcfile $i $2
+		for i in "$1"/*.c; do
+			buildcfile "$i" "$2"
 		done
 	fi
 }

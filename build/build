@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # libopac.a is placed in "out" directory
 
@@ -33,11 +33,12 @@ GCCOPTS="-std=c99 -O2 -g"
 
 INCS="-I./ -I../deps/libtommath"
 
-ensuredir $OUTDIR
-cleandir $TMPDIR
-CFLAGS="$CFLAGS $(testgccopt -fno-lto)" buildcfile wrapmemcpy.c $TMPDIR
-builddir "../src" $TMPDIR
+ensuredir "$OUTDIR"
+cleandir "$TMPDIR"
+builddir "../src" "$TMPDIR"
+CFLAGS="$CFLAGS $(testgccopt -fno-lto)"
+buildcfile wrapmemcpy.c "$TMPDIR"
 rm -f "$OUTDIR/libopac.a"
-$AR $ARFLAGS "$OUTDIR/libopac.a" $TMPDIR/*.o
-deldir $TMPDIR
+$AR $ARFLAGS "$OUTDIR/libopac.a" "$TMPDIR"/*.o
+deldir "$TMPDIR"
 
