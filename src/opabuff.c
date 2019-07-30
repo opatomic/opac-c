@@ -140,7 +140,7 @@ void opabuffInit(opabuff* b, unsigned int flags) {
 opabuff opabuffNew(size_t len) {
 	opabuff b;
 	opabuffInit(&b, 0);
-	opabuffSetLen(&b, len);
+	opabuffEnsureSpace(&b, len);
 	return b;
 }
 
