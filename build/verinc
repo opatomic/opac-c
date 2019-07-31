@@ -1,0 +1,44 @@
+#!/bin/bash
+
+function handleErr {
+	SNAME=$(basename "$BASH_SOURCE")
+	echo "$SNAME: Error on line $1"
+	exit 1
+}
+
+trap 'handleErr $LINENO' ERR
+
+git --version  > /dev/null 2>&1 || (echo "git must be installed" >&2 && exit 1)
+[ "$(git rev-parse --is-inside-work-tree)" = "true" ] || (echo "not in git repo?" >&2 && exit 1)
+
+MODCNT=$(git status --porcelain | wc -l)
+if [ "$MODCNT" -ne 0 ]; then
+	echo "There are $MODCNT changes. Must revert or check in changes."
+	exit 1
+fi
+
+VERSION=$(cat version.txt)
+
+VERSION=$(echo "$VERSION" | cut -d '-' -f1)
+VER1=$(echo "$VERSION" | cut -d '.' -f1)
+VER2=$(echo "$VERSION" | cut -d '.' -f2)
+VER3=$(echo "$VERSION" | cut -d '.' -f3)
+NEXTVER="$VER1.$VER2.$((VER3+1))"
+
+
+# run a build to make sure there's no problems building
+./build
+
+# TODO: run tests here; do not proceed if they fail
+
+echo "$NEXTVER" > version.txt
+
+git add version.txt
+
+git commit -m "increment version to v$NEXTVER"
+git tag -a "v$NEXTVER" -m "v$NEXTVER"
+
+echo "committed and tagged v$NEXTVER"
+
+git push --follow-tags
+

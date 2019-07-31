@@ -7,7 +7,6 @@
 
 #include "opac.h"
 #include "opacore.h"
-#include "opacversion.h"
 #include "opaso.h"
 
 #ifdef OPA_NOTHREADS
@@ -18,6 +17,10 @@
 #elif defined(__GNUC__)
 #define ATOMIC_INC64(v) __sync_add_and_fetch((v), 1)
 #endif
+#endif
+
+#ifndef OPAC_VERSION
+#define OPAC_VERSION "0.0.0-dev"
 #endif
 
 #ifdef OPA_NOTHREADS

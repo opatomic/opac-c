@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# first try to use git to determine the version
+
+VERSION=$(git describe --tags --dirty 2> /dev/null)
+#if [ $? -eq 0 ] && [[ "$VERSION" =~ v[0-9]+\.[0-9]+\.[0-9]+.* ]]; then
+if [ $? -eq 0 ] && expr "$VERSION" : "v[[:digit:]]\{1,\}\.[[:digit:]]\{1,\}\.[[:digit:]]\{1,\}.*" 1>/dev/null ; then
+	echo "$VERSION" | cut -b 2-
+	exit
+fi
+
+# If git fails, then fall back to version defined in a file. The file version
+# is available in case the source is not obtained from git. It should be the
+# latest tagged version.
+
+VERSION=$(cat "version.txt")
+if expr "$VERSION" : "[[:digit:]]\{1,\}\.[[:digit:]]\{1,\}\.[[:digit:]]\{1,\}" 1>/dev/null ; then
+	echo "$VERSION-dev"
+	exit
+fi
+
+exit 1
