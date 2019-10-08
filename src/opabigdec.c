@@ -75,14 +75,18 @@ int opabigdecIsNeg(const opabigdec* a) {
 	return mp_isneg(&a->significand);
 }
 
+int opabigdecIsZero(const opabigdec* a) {
+	return mp_iszero(&a->significand) == MP_YES;
+}
+
 static void opabigdecNegate(opabigdec* a) {
 #ifdef OPA_USEGMP
 	mpz_neg(&a->significand, &a->significand);
 #else
-	if (mp_iszero(&a->significand) != MP_YES) {
-		a->significand.sign = (a->significand.sign == MP_ZPOS) ? MP_NEG : MP_ZPOS;
-	} else {
+	if (opabigdecIsZero(a)) {
 		a->significand.sign = MP_ZPOS;
+	} else {
+		a->significand.sign = (a->significand.sign == MP_ZPOS) ? MP_NEG : MP_ZPOS;
 	}
 #endif
 }
@@ -202,7 +206,7 @@ static int opabigdecAddInternal(const opabigdec* a, const opabigdec* b, opabigde
 	OASSERT(a->exponent == b->exponent);
 	int err = mp_add(&a->significand, &b->significand, &result->significand);
 	if (!err) {
-		result->exponent = mp_iszero(&result->significand) ? 0 : a->exponent;
+		result->exponent = opabigdecIsZero(result) ? 0 : a->exponent;
 	} else {
 		err = opabigdecConvertErr(err);
 	}
@@ -210,7 +214,11 @@ static int opabigdecAddInternal(const opabigdec* a, const opabigdec* b, opabigde
 }
 
 int opabigdecAdd(const opabigdec* a, const opabigdec* b, opabigdec* result) {
-	if (a->exponent == b->exponent) {
+	if (opabigdecIsZero(a)) {
+		return opabigdecCopy(b, result);
+	} else if (opabigdecIsZero(b)) {
+		return opabigdecCopy(a, result);
+	} else if (a->exponent == b->exponent) {
 		return opabigdecAddInternal(a, b, result);
 	} else if (a->exponent > b->exponent) {
 		return opabigdecAdd(b, a, result);
@@ -241,7 +249,7 @@ static int opabigdecSubInternal(const opabigdec* a, const opabigdec* b, opabigde
 	OASSERT(a->exponent == b->exponent);
 	int err = mp_sub(&a->significand, &b->significand, &result->significand);
 	if (!err) {
-		result->exponent = mp_iszero(&result->significand) ? 0 : a->exponent;
+		result->exponent = opabigdecIsZero(result) ? 0 : a->exponent;
 	} else {
 		err = opabigdecConvertErr(err);
 	}
@@ -287,7 +295,7 @@ static int opabigdecMulInternal(const opabigdec* a, const opabigdec* b, opabigde
 	OASSERT(a->exponent == b->exponent);
 	int err = mp_mul(&a->significand, &b->significand, &result->significand);
 	if (!err) {
-		result->exponent = mp_iszero(&result->significand) ? 0 : a->exponent + b->exponent;
+		result->exponent = opabigdecIsZero(result) ? 0 : a->exponent + b->exponent;
 	} else {
 		err = opabigdecConvertErr(err);
 	}
@@ -331,7 +339,7 @@ static int opabigdecImport3(opabigdec* bd, const uint8_t* src, size_t numBytes, 
 	if (isNeg) {
 		opabigdecNegate(bd);
 	}
-	bd->exponent = mp_iszero(&bd->significand) ? 0 : exponent;
+	bd->exponent = opabigdecIsZero(bd) ? 0 : exponent;
 	return 0;
 }
 
@@ -493,7 +501,7 @@ static size_t opabigdecSaveBigInt(const opabigdec* val, uint8_t* buff, size_t bu
 
 size_t opabigdecStoreSO(const opabigdec* val, uint8_t* buff, size_t buffLen) {
 	// note: number could be stored as decimal but not need to be serialized as decimal. ie, 1000e-3=1 12e2=1200
-	if (mp_iszero(&val->significand)) {
+	if (opabigdecIsZero(val)) {
 		if (buffLen > 0) {
 			*buff = OPADEF_ZERO;
 		}
@@ -614,7 +622,7 @@ int opabigdecFromStr(opabigdec* v, const char* str, int radix) {
 		v->exponent = (int32_t) newVal;
 	}
 
-	if (mp_iszero(&v->significand)) {
+	if (opabigdecIsZero(v)) {
 		v->exponent = 0;
 	} else {
 		if (neg) {
