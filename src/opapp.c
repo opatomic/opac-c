@@ -148,11 +148,11 @@ static uint8_t utf8check(const uint8_t* buff, size_t len, uint8_t state) {
 #define OPAPP_S_UTF8         4
 #define OPAPP_S_SKIPBYTES    5
 #define OPAPP_S_CHECKBIBYTES 6
-#define OPAPP_S_ERR          7
+#define OPAPP_S_RETURNOBJ    7
+#define OPAPP_S_ERR          8
 
 
 static int opappFindEndInternal(opapp* rc, const uint8_t* buff, size_t len, const uint8_t** pEnd, const opappOptions* opt) {
-	// TODO: support parsing single non-array objects
 	OASSERT(buff[len] == 0);
 
 	const uint8_t* end = buff + len;
@@ -165,11 +165,21 @@ static int opappFindEndInternal(opapp* rc, const uint8_t* buff, size_t len, cons
 			case OPAPP_S_BIGDEC:       goto ParseBigDec;
 			case OPAPP_S_UTF8:         goto Utf8;
 			case OPAPP_S_SKIPBYTES:    goto SkipBytes;
+			case OPAPP_S_RETURNOBJ:    goto ReturnOrParseNextObj;
 			case OPAPP_S_CHECKBIBYTES: goto CheckBigIntBytes;
 
 			case OPAPP_S_ERR:          return OPA_ERR_PARSE;
 			default:                   OPAPANIC("invalid state");
 		}
+	}
+
+	ReturnOrParseNextObj: {
+		if (rc->arrayDepth == 0) {
+			rc->state = OPAPP_S_NEXTOBJ;
+			*pEnd = buff;
+			return 0;
+		}
+		goto ParseNextObj;
 	}
 
 	ParseNextObj: {
@@ -191,24 +201,15 @@ static int opappFindEndInternal(opapp* rc, const uint8_t* buff, size_t len, cons
 			case OPADEF_STR_EMPTY:
 			case OPADEF_ARRAY_EMPTY:
 			case OPADEF_SORTMAX:
-				if (rc->arrayDepth == 0) {
-					goto ReturnParseErr;
-				}
-				goto ParseNextObj;
+				goto ReturnOrParseNextObj;
 
 			case OPADEF_POSVARINT:
 			case OPADEF_NEGVARINT:
-				if (rc->arrayDepth == 0) {
-					goto ReturnParseErr;
-				}
-				rc->varintNextState = OPAPP_S_NEXTOBJ;
+				rc->varintNextState = OPAPP_S_RETURNOBJ;
 				goto ParseVarInt1;
 
 			case OPADEF_POSBIGINT:
 			case OPADEF_NEGBIGINT:
-				if (rc->arrayDepth == 0) {
-					goto ReturnParseErr;
-				}
 				rc->varintNextState = OPAPP_S_CHECKBIBYTES;
 				goto ParseVarInt1;
 
@@ -216,9 +217,6 @@ static int opappFindEndInternal(opapp* rc, const uint8_t* buff, size_t len, cons
 			case OPADEF_POSNEGVARDEC:
 			case OPADEF_NEGPOSVARDEC:
 			case OPADEF_NEGNEGVARDEC:
-				if (rc->arrayDepth == 0) {
-					goto ReturnParseErr;
-				}
 				rc->varintNextState = OPAPP_S_VARDEC;
 				goto ParseVarInt1;
 
@@ -226,23 +224,14 @@ static int opappFindEndInternal(opapp* rc, const uint8_t* buff, size_t len, cons
 			case OPADEF_POSNEGBIGDEC:
 			case OPADEF_NEGPOSBIGDEC:
 			case OPADEF_NEGNEGBIGDEC:
-				if (rc->arrayDepth == 0) {
-					goto ReturnParseErr;
-				}
 				rc->varintNextState = OPAPP_S_BIGDEC;
 				goto ParseVarInt1;
 
 			case OPADEF_BIN_LPVI:
-				if (rc->arrayDepth == 0) {
-					goto ReturnParseErr;
-				}
 				rc->varintNextState = OPAPP_S_SKIPBYTES;
 				goto ParseVarInt1;
 
 			case OPADEF_STR_LPVI:
-				if (rc->arrayDepth == 0) {
-					goto ReturnParseErr;
-				}
 				OASSERT(rc->utf8State == UTF8FIRST);
 				rc->varintNextState = opt->checkUtf8 ? OPAPP_S_UTF8 : OPAPP_S_SKIPBYTES;
 				goto ParseVarInt1;
@@ -317,7 +306,7 @@ static int opappFindEndInternal(opapp* rc, const uint8_t* buff, size_t len, cons
 			goto ReturnParseErr;
 		}
 		buff += rc->varintVal;
-		goto ParseNextObj;
+		goto ReturnOrParseNextObj;
 	}
 
 	CheckBigIntBytes: {
@@ -345,7 +334,7 @@ static int opappFindEndInternal(opapp* rc, const uint8_t* buff, size_t len, cons
 			goto ReturnOK;
 		}
 		buff += rc->varintVal;
-		goto ParseNextObj;
+		goto ReturnOrParseNextObj;
 	}
 
 	ParseVarDec: {
@@ -353,7 +342,7 @@ static int opappFindEndInternal(opapp* rc, const uint8_t* buff, size_t len, cons
 			// exponent is too big
 			goto ReturnParseErr;
 		}
-		rc->varintNextState = OPAPP_S_NEXTOBJ;
+		rc->varintNextState = OPAPP_S_RETURNOBJ;
 		goto ParseVarInt1;
 	}
 
