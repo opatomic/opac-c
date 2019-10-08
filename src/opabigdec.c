@@ -769,7 +769,7 @@ int opabigdecToString(const opabigdec* a, char* str, int radix, size_t space) {
 				opabigDecAppendExp(a->exponent, radix, str + slen, space - slen);
 			} else {
 				// remove any trailing 0's
-				for (; slen > 1 && str[slen - 1] == '0'; --slen, --digsAfterDec) {
+				for (; digsAfterDec > 0 && slen > 1 && str[slen - 1] == '0'; --slen, --digsAfterDec) {
 					str[slen - 1] = 0;
 				}
 
