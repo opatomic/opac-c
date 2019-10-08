@@ -1,3 +1,8 @@
+/*
+ * Copyright 2018-2019 Opatomic
+ * Open sourced with ISC license. Refer to LICENSE for details.
+ */
+
 #include "opac.h"
 
 #ifndef OPAC_VERSION
