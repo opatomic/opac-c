@@ -19,6 +19,7 @@ typedef pthread_mutex_t opamutex;
 void opamutexInit(opamutex* m);
 void opamutexDestroy(opamutex* m);
 void opamutexLock(opamutex* m);
+int opamutexTryLock(opamutex* m);
 void opamutexUnlock(opamutex* m);
 
 #endif
