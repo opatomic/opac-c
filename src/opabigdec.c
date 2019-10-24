@@ -748,6 +748,10 @@ int opabigdecToString(const opabigdec* a, char* str, int radix, size_t space) {
 	if (!err && a->exponent != 0) {
 		// skip past the chars that were already written
 		size_t slen = strlen(str);
+		if (slen > 0 && str[0] == '-') {
+			++str;
+			--slen;
+		}
 		OASSERT(slen > 0 && space > slen);
 
 		if (a->exponent > 0) {
@@ -806,4 +810,3 @@ int opabigdecToString(const opabigdec* a, char* str, int radix, size_t space) {
 
 	return err;
 }
-
