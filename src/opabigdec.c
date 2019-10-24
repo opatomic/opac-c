@@ -147,7 +147,8 @@ int opabigdecGet64(const opabigdec* a, uint64_t* pVal) {
 			int tomerr = mp_div_d(&tmp.significand, 10, &tmp.significand, &rem);
 			if (tomerr || rem) {
 				opabigdecClear(&tmp);
-				return tomerr ? opabigdecConvertErr(tomerr) : OPA_ERR_INVARG;
+				// TODO: OPA_ERR_OVERFLOW is a bad error code name to indicate remainder?
+				return tomerr ? opabigdecConvertErr(tomerr) : OPA_ERR_OVERFLOW;
 			}
 			++tmp.exponent;
 		}
