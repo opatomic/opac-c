@@ -59,6 +59,12 @@ void opacReqInit(opacReq* r) {
 	memset(r, 0, sizeof(opacReq));
 }
 
+void opacReqAsyncInit(opacReqAsync* r, opacid id) {
+	opacReqInit(&r->rbase);
+	r->idinfo.id = id;
+	r->rbase.flags |= OPAC_F_ISASYNC;
+}
+
 void opacReqSetRequestBuff(opacReq* r, opabuff b) {
 	//OASSERT(!(r->flags & OPAC_F_QUEUEDFORSEND) && !opacReqIsSent(r));
 	OASSERT(r->flags == 0);
@@ -255,21 +261,25 @@ static int opacOnResponse(opac* c) {
 	//	return OPA_ERR_PARSE;
 	//}
 	++buff;
-	const uint8_t* result = buff;
+	if (*buff == OPADEF_ARRAY_END) {
+		return OPA_ERR_PARSE;
+	}
 	const uint8_t* errObj = NULL;
-	const uint8_t* asyncId = NULL;
+	const uint8_t* asyncId = buff;
+	buff += opasolen(buff);
+	if (*buff == OPADEF_ARRAY_END) {
+		return OPA_ERR_PARSE;
+	}
+	const uint8_t* result = buff;
 	buff += opasolen(buff);
 	if (*buff != OPADEF_ARRAY_END) {
 		errObj = buff;
 		buff += opasolen(buff);
 		if (*buff != OPADEF_ARRAY_END) {
-			asyncId = buff;
-			buff += opasolen(buff);
-			if (*buff != OPADEF_ARRAY_END) {
-				return OPA_ERR_PARSE;
-			}
+			return OPA_ERR_PARSE;
 		}
 	}
+
 	if (errObj != NULL && *errObj != OPADEF_NULL) {
 		if (*result != OPADEF_NULL) {
 			// result or err must be null
@@ -279,8 +289,7 @@ static int opacOnResponse(opac* c) {
 	} else {
 		errObj = NULL;
 	}
-	if (asyncId != NULL && *asyncId == OPADEF_NULL) {
-		// async id cannot be null
+	if (*asyncId == OPADEF_FALSE) {
 		return OPA_ERR_PARSE;
 	}
 	if (errObj != NULL) {
@@ -295,7 +304,7 @@ static int opacOnResponse(opac* c) {
 	// at this point the server response should conform to spec
 
 	opacReq* r = NULL;
-	if (asyncId != NULL) {
+	if (*asyncId != OPADEF_NULL) {
 		if (*asyncId == OPADEF_POSVARINT) {
 			uint64_t id = opaviLoad(asyncId + 1, NULL);
 			if (id <= INT64_MAX) {
@@ -389,7 +398,7 @@ void opacParseResponses(opac* c) {
 	}
 }
 
-static opacid opacGetAsyncId(opac* c, int persistent) {
+opacid opacGetAsyncId(opac* c, int persistent) {
 	// TODO: detect/prevent overflow of id?
 	uint64_t id = ATOMIC_INC64(&c->currId);
 	return persistent ? 0 - id : id;
@@ -400,124 +409,45 @@ int opacRemovePersistent(opac* c, opacReqAsync* r) {
 	return i != NULL;
 }
 
-/*
-static const uint8_t* opacReqFindAsyncId(const opacReq* r) {
-	if (r->rrbuff.len > 0) {
-		const uint8_t* pos = r->rrbuff.data;
-		if (*pos == OPADEF_ARRAY_START) {
-			++pos;
-			if (*pos != OPADEF_ARRAY_END) {
-				// skip command
-				pos += opasolen(pos);
-				if (*pos != OPADEF_ARRAY_END) {
-					// skip args
-					pos += opasolen(pos);
-					if (*pos != OPADEF_ARRAY_END) {
-						return pos;
-					}
-				}
+void opacQueueRequest(opac* c, opacReq* r) {
+	OASSERT((r->flags & (OPAC_F_QUEUEDFORSEND | OPAC_F_SENT | OPAC_F_RESPONSERECVD | OPAC_F_RESULTISERR)) == 0);
+
+	if (opabuffGetLen(&r->rrbuff) > 2) {
+		const uint8_t* pos = opabuffGetPos(&r->rrbuff, 0);
+		if (*pos != OPADEF_ARRAY_START) {
+			goto InvalidReq;
+		}
+		++pos;
+		if (*pos == OPADEF_NULL) {
+			if (r->flags & (OPAC_F_ISASYNC | OPAC_F_NORESPONSE)) {
+				goto InvalidReq;
+			}
+		} else if (*pos == OPADEF_FALSE) {
+			if (r->flags & OPAC_F_ISASYNC) {
+				goto InvalidReq;
+			}
+			r->flags |= OPAC_F_NORESPONSE;
+		} else if (*pos == OPADEF_POSVARINT || *pos == OPADEF_NEGVARINT) {
+			if ((r->flags & OPAC_F_ISASYNC) == 0) {
+				goto InvalidReq;
 			}
 		}
-	}
-	return NULL;
-}
-*/
-
-static void opacQueueRequestInternal(opac* c, opacReq* r) {
-	OASSERT(!opacReqIsSent(r) && !opacReqResponseRecvd(r) && !(r->flags & OPAC_F_RESULTISERR));
-	/*
-#ifdef OPAC_CHECKREQAID
-	const uint8_t* apos = opacReqFindAsyncId(r);
-	if (r->flags & OPAC_F_ISASYNC) {
-		OASSERT(apos != NULL && (*apos == OPADEF_NEGVARINT || *apos == OPADEF_POSVARINT));
-	} else if (r->flags & OPAC_F_NORESPONSE) {
-		OASSERT(apos != NULL && *apos == OPADEF_NULL);
 	} else {
-		OASSERT(apos == NULL);
+		goto InvalidReq;
 	}
-#endif
-*/
 
 	if (c->err || c->closed) {
 		opacHandleReqErr(c, r, OPAC_RER_CLOSED, 0);
 		return;
 	}
+
 	r->pos = opabuffGetPos(&r->rrbuff, 0);
 	r->flags |= OPAC_F_QUEUEDFORSEND;
 	opaqueuePush(&c->reqsToSend, &r->qi);
-}
+	return;
 
-void opacQueueRequest(opac* c, opacReq* r) {
-	OASSERT(!(r->flags & OPAC_F_ISASYNC) && !(r->flags & OPAC_F_NORESPONSE));
-	opacQueueRequestInternal(c, r);
-}
-
-static int opacAddAsyncId(opabuff* b, const void* idBuff, size_t idLen) {
-	int err = 0;
-	int addArgs = 0;
-	size_t blen = opabuffGetLen(b);
-	const uint8_t* checkPos = opabuffGetPos(b, 0);
-	if (!err && !(blen > 2 && checkPos[0] == OPADEF_ARRAY_START && checkPos[1] != OPADEF_ARRAY_END && checkPos[blen - 1] == OPADEF_ARRAY_END)) {
-		err = OPA_ERR_INVARG;
-	}
-	if (!err) {
-		// skip first byte and command
-		checkPos += opasolen(checkPos + 1);
-		if (*checkPos == OPADEF_ARRAY_END) {
-			// no args in buffer (just a command) - must add args before asyncid
-			addArgs = 1;
-		}
-	}
-	if (!err) {
-		err = opabuffAppend(b, NULL, addArgs + idLen);
-	}
-	if (!err) {
-		// must get buffer pointer after opabuffAppend() since it might change due to reallocation
-		uint8_t* pos = opabuffGetPos(b, blen - 1);
-		if (addArgs) {
-			*pos++ = OPADEF_NULL;
-		}
-		memcpy(pos, idBuff, idLen);
-		pos += idLen;
-		*pos = OPADEF_ARRAY_END;
-	}
-	return err;
-}
-
-void opacQueueNoResponseRequest(opac* c, opacReq* r) {
-	const uint8_t id[] = {OPADEF_NULL};
-	int err = opacAddAsyncId(&r->rrbuff, id, 1);
-	if (!err) {
-		r->flags |= OPAC_F_NORESPONSE;
-		opacQueueRequestInternal(c, r);
-	} else {
-		opacHandleReqErr(c, r, OPAC_RER_ERR, err);
-	}
-}
-
-void opacQueueAsyncRequest(opac* c, opacReqAsync* r, int persistent) {
-	// TODO: could assign (and append) asyncid when request is dequeued in opacSendRequests(); if
-	//  opacSendRequests() is only called by 1 thread then this could have some advantages: the
-	//  id wouldn't need an atomic increment and would be easier to check for overflow
-	uint8_t idBuff[1 + OPAVI_MAXLEN64];
-	opacid id = opacGetAsyncId(c, persistent);
-	OASSERT(id > INT64_MIN && id != 0);
-	if (id < 0) {
-		idBuff[0] = OPADEF_NEGVARINT;
-		opaviStore(0 - id, idBuff + 1);
-	} else {
-		idBuff[0] = OPADEF_POSVARINT;
-		opaviStore(id, idBuff + 1);
-	}
-
-	int err = opacAddAsyncId(&r->rbase.rrbuff, idBuff, opasolen(idBuff));
-	if (!err) {
-		r->idinfo.id = id;
-		r->rbase.flags |= OPAC_F_ISASYNC;
-		opacQueueRequestInternal(c, &r->rbase);
-	} else {
-		opacHandleReqErr(c,  &r->rbase, OPAC_RER_ERR, err);
-	}
+	InvalidReq:
+	opacHandleReqErr(c, r, OPAC_RER_INVREQ, 0);
 }
 
 static void opacInitInternal(opac* c, const opacFuncs* funcs) {

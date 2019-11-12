@@ -24,8 +24,10 @@ static void oparbAppend(oparb* rb, const void* src, size_t srcLen) {
 	}
 }
 
-void oparbInit(oparb* rb) {
+void oparbInit(oparb* rb, const uint8_t* asyncId, size_t idLen) {
 	memset(rb, 0, sizeof(oparb));
+	oparbAppend1(rb, OPADEF_ARRAY_START);
+	oparbAppend(rb, asyncId, idLen);
 }
 
 static void oparbAppendStrOrBin(oparb* rb, size_t len, const void* arg, uint8_t type) {
@@ -47,34 +49,6 @@ static void oparbAppendStrOrBin(oparb* rb, size_t len, const void* arg, uint8_t 
 	}
 }
 
-void oparbSetCommand(oparb* rb, const char* cmd) {
-	if (rb->started) {
-		if (!rb->err) {
-			rb->err = OPA_ERR_INVSTATE;
-			rb->errDesc = "command already set";
-		}
-		return;
-	}
-	oparbAddStr(rb, strlen(cmd), cmd);
-}
-
-static void oparbStartIfNeeded(oparb* rb) {
-	if (!rb->started) {
-		oparbAppend1(rb, OPADEF_ARRAY_START);
-		if (!rb->err) {
-			rb->started = 1;
-		}
-	} else if (!rb->argsStarted && rb->depth == 0) {
-		oparbAppend1(rb, OPADEF_ARRAY_START);
-		if (!rb->err) {
-			rb->argsStarted = 1;
-		}
-	}
-	if (!rb->err) {
-		rb->isEmptyArray = 0;
-	}
-}
-
 static void oparbWriteVarint(oparb* rb, uint8_t type, uint64_t val) {
 	if (!rb->err) {
 		size_t pos = opabuffGetLen(&rb->buff);
@@ -87,23 +61,27 @@ static void oparbWriteVarint(oparb* rb, uint8_t type, uint64_t val) {
 	}
 }
 
-static void oparbFinishAsyncSO(oparb* rb, const uint8_t* asyncIdSO) {
-	if (!rb->started && !rb->err) {
-		rb->err = OPA_ERR_INVSTATE;
-		rb->errDesc = "empty request";
+void oparbFinish(oparb* rb) {
+	if (!rb->err) {
+		int empty = 1;
+		size_t blen = opabuffGetLen(&rb->buff);
+		if (blen > 1) {
+			const uint8_t* pos = opabuffGetPos(&rb->buff, 0);
+			if (*pos == OPADEF_ARRAY_START) {
+				size_t idlen = opasolen(pos + 1);
+				if (blen > 1 + idlen) {
+					empty = 0;
+				}
+			}
+		}
+		if (empty) {
+			rb->err = OPA_ERR_INVSTATE;
+			rb->errDesc = "empty request";
+		}
 	}
 	if (rb->depth > 0 && !rb->err) {
 		rb->err = OPA_ERR_INVSTATE;
 		rb->errDesc = "invalid array depth";
-	}
-	if (rb->argsStarted) {
-		oparbAppend1(rb, OPADEF_ARRAY_END);
-	}
-	if (asyncIdSO != NULL) {
-		if (!rb->argsStarted) {
-			oparbAppend1(rb, OPADEF_NULL);
-		}
-		oparbAppend(rb, asyncIdSO, opasolen(asyncIdSO));
 	}
 	oparbAppend1(rb, OPADEF_ARRAY_END);
 	if (rb->err) {
@@ -111,12 +89,7 @@ static void oparbFinishAsyncSO(oparb* rb, const uint8_t* asyncIdSO) {
 	}
 }
 
-void oparbFinish(oparb* rb) {
-	oparbFinishAsyncSO(rb, NULL);
-}
-
 static void oparbAddBigDec(oparb* rb, const opabigdec* arg) {
-	oparbStartIfNeeded(rb);
 	if (!rb->err) {
 		size_t pos = opabuffGetLen(&rb->buff);
 		size_t lenReq = opabigdecStoreSO(arg, NULL, 0);
@@ -128,7 +101,6 @@ static void oparbAddBigDec(oparb* rb, const opabigdec* arg) {
 }
 
 static void oparbAddVarint(oparb* rb, uint8_t type, uint64_t val) {
-	oparbStartIfNeeded(rb);
 	if (val == 0) {
 		oparbAppend1(rb, OPADEF_ZERO);
 	} else if (val <= INT64_MAX) {
@@ -163,12 +135,10 @@ void oparbAddU64(oparb* rb, uint64_t arg) {
 }
 
 void oparbAddSO(oparb* rb, const uint8_t* so) {
-	oparbStartIfNeeded(rb);
 	oparbAppend(rb, so, opasolen(so));
 }
 
 static void oparbAddStrOrBin(oparb* rb, size_t len, const void* arg, uint8_t type) {
-	oparbStartIfNeeded(rb);
 	oparbAppendStrOrBin(rb, len, arg, type);
 }
 
@@ -196,10 +166,8 @@ void oparbAddStr(oparb* rb, size_t len, const void* arg) {
 }
 
 void oparbStartArray(oparb* rb) {
-	oparbStartIfNeeded(rb);
 	oparbAppend1(rb, OPADEF_ARRAY_START);
 	if (!rb->err) {
-		rb->isEmptyArray = 1;
 		++rb->depth;
 	}
 }
@@ -212,17 +180,14 @@ void oparbStopArray(oparb* rb) {
 		}
 		return;
 	}
-	if (!rb->err && rb->isEmptyArray) {
+	if (!rb->err) {
 		OASSERT(opabuffGetLen(&rb->buff) > 0);
 		uint8_t* prevByte = opabuffGetPos(&rb->buff, opabuffGetLen(&rb->buff) - 1);
-		if (prevByte != NULL) {
+		if (prevByte != NULL && *prevByte == OPADEF_ARRAY_START) {
 			*prevByte = OPADEF_ARRAY_EMPTY;
-			rb->isEmptyArray = 0;
 		} else {
-			rb->err = OPA_ERR_INVSTATE;
+			oparbAppend1(rb, OPADEF_ARRAY_END);
 		}
-	} else {
-		oparbAppend1(rb, OPADEF_ARRAY_END);
 	}
 	if (!rb->err) {
 		--rb->depth;
@@ -358,7 +323,6 @@ static uint8_t oparbConvertToken(const void* s, size_t slen) {
 static void oparbAddUserToken(oparb* rb, const char* s, const char* end) {
 	uint8_t replacement = oparbConvertToken(s, end - s);
 	if (replacement != 0) {
-		oparbStartIfNeeded(rb);
 		oparbAppend1(rb, replacement);
 	} else if (opaIsNumStr(s, end)) {
 		oparbAddNumStr(rb, s);
@@ -408,9 +372,9 @@ static const char* oparbFindTokenEnd(const char* str) {
 	}
 }
 
-oparb oparbParseUserCommand(const char* s) {
+static oparb oparbParseUserCommandWithId(const char* s, const uint8_t* id, size_t idLen) {
 	oparb rb;
-	oparbInit(&rb);
+	oparbInit(&rb, id, idLen);
 	int depth = 0;
 	const char* end;
 	while (!rb.err) {
@@ -469,4 +433,9 @@ oparb oparbParseUserCommand(const char* s) {
 	}
 	oparbFinish(&rb);
 	return rb;
+}
+
+oparb oparbParseUserCommand(const char* s) {
+	const uint8_t idbuff[] = {OPADEF_NULL};
+	return oparbParseUserCommandWithId(s, idbuff, 1);
 }

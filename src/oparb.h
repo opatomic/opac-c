@@ -11,17 +11,13 @@
 #include "opabuff.h"
 
 typedef struct {
+	opabuff buff;         // buff containing raw request
+	unsigned int depth;
 	int err;              // error code that occurred while building request (ie, out of memory)
 	const char* errDesc;  // description of error that occurred while building request (may be NULL even if err is nonzero)
-	opabuff buff;         // buff containing raw request
-	char started;
-	char argsStarted;
-	char isEmptyArray;
-	unsigned int depth;
 } oparb;
 
-void oparbInit(oparb* rb);
-void oparbSetCommand(oparb* rb, const char* cmd);
+void oparbInit(oparb* rb, const uint8_t* asyncId, size_t idLen);
 void oparbAddI64(oparb* rb, int64_t arg);
 void oparbAddU64(oparb* rb, uint64_t arg);
 void oparbAddSO(oparb* rb, const uint8_t* so);

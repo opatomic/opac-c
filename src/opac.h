@@ -89,6 +89,7 @@ typedef struct {
 
 
 void opacReqInit(opacReq* r);
+void opacReqAsyncInit(opacReqAsync* r, opacid id);
 void opacReqSetRequestBuff(opacReq* r, opabuff b);
 void opacReqFreeRequest(opacReq* r);
 void opacReqFreeResponse(opacReq* r);
@@ -168,23 +169,11 @@ int opacIsOpen(opac* c);
 void opacQueueRequest(opac* c, opacReq* r);
 
 /**
- * Queue an async request that will receive a response from server out of order. Request
- * will be sent eventually when opacSendRequests() is called.
- * Note: request buffer will be modified (to add async-id to end of request)
+ * Get a unique async id that can be used in a request.
  * @param c Client
- * @param r Request to send
- * @param persistent 0 if server will only respond once; else non-zero
+ * @param persistent 0 if request will have exactly 1 response; else 1
  */
-void opacQueueAsyncRequest(opac* c, opacReqAsync* r, int persistent);
-
-/**
- * Queue a request that will not receive a response from server. Request will be sent
- * eventually when opacSendRequests() is called.
- * Note: request buffer will be modified (to add null async-id to end of request)
- * @param c Client
- * @param r Request to send
- */
-void opacQueueNoResponseRequest(opac* c, opacReq* r);
+opacid opacGetAsyncId(opac* c, int persistent);
 
 /**
  * Unregister the specified persistent async request
