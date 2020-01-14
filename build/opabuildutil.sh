@@ -2,12 +2,18 @@
 CC="${CC:-cc}"
 AR="${AR:-ar}"
 ARFLAGS="${ARFLAGS:--rcs}"
-TGTOS="${TGTOS:-$(uname | tr '[:upper:]' '[:lower:]')}"
+
+if [ "$OS" = "Windows_NT" ]; then
+	# running mingw on windows
+	TGTOS="${TGTOS:-win}"
+else
+	TGTOS="${TGTOS:-$(uname | tr '[:upper:]' '[:lower:]')}"
+fi
 
 UNAME="${UNAME:-$(uname | tr '[:upper:]' '[:lower:]')}"
 
 getnproc() {
-	if [ "$UNAME" = "linux" ]; then
+	if [ "$UNAME" = "linux" ] || [ "$OS" = "Windows_NT" ]; then
 		nproc 2>/dev/null || echo 1
 	elif [ "$UNAME" = "darwin" ]; then
 		sysctl -n hw.logicalcpu 2>/dev/null || echo 1

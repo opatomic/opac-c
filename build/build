@@ -31,7 +31,7 @@ OUTDIR="$PWD/out"
 GCCOPTS="-std=c99 -O2 -g"
 #GCCOPTS="$GCCOPTS -fno-strict-aliasing"
 
-INCS="-I./ -I../deps/libtommath"
+INCS="-I. -I../deps/libtommath"
 DEFS="-DOPAC_VERSION=\"$(./verget)\""
 
 ensuredir "$OUTDIR"
