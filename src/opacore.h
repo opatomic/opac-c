@@ -15,8 +15,10 @@
 #ifdef _MSC_VER
 #define ATTR_NORETURN __declspec(noreturn)
 #define restrict __restrict
-#else
+#elif defined(__GNUC__)
 #define ATTR_NORETURN __attribute__((noreturn))
+#else
+#define ATTR_NORETURN
 #endif
 
 //#define NONNULL(args) __attribute__ ((nonnull args))
@@ -31,7 +33,7 @@
 #define OASSERT(c) do {if (!(c)) {OPAPANICF("assertion '%s' failed", #c);}} while(0)
 #endif
 
-#if defined(OPADBG) && !defined(_MSC_VER)
+#if defined(OPADBG) && defined(__GNUC__)
 #define list_entry(ptr, type, member) (__extension__({OASSERT(ptr != NULL); const __typeof__( ((type*)0)->member ) *_MPWT = (ptr);(type*)((void*)( (char*)_MPWT - offsetof(type, member) ));}))
 #else
 // note: cast to void* then to type* to avoid a -Wcast-align warning
@@ -132,19 +134,25 @@ void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWOR
 const char* opacoreFileBasename(const char* file);
 void opacoreLog   (const char* func, const char* filename, int line, const char* s);
 void opacoreLogErr(const char* func, const char* filename, int line, const char* s);
-void opacorePanic (const char* func, const char* filename, int line, const char* s) ATTR_NORETURN;
+ATTR_NORETURN
+void opacorePanic (const char* func, const char* filename, int line, const char* s);
 
-#ifdef _WIN32
-#define OPAPRINTFFMT gnu_printf
+#ifdef __GNUC__
+	#ifdef _WIN32
+		#define OPA_ATTR_PRINTF_FFLF __attribute__((__format__ (gnu_printf, 4, 5)))
+	#else
+		#define OPA_ATTR_PRINTF_FFLF __attribute__((__format__ (__printf__, 4, 5)))
+	#endif
 #else
-#define OPAPRINTFFMT __printf__
+	#define OPA_ATTR_PRINTF_FFLF
 #endif
-__attribute__((__format__ (OPAPRINTFFMT, 4, 5)))
+OPA_ATTR_PRINTF_FFLF
 void opacoreLogf   (const char* func, const char* filename, int line, const char* format, ...);
-__attribute__((__format__ (OPAPRINTFFMT, 4, 5)))
+OPA_ATTR_PRINTF_FFLF
 void opacoreLogErrf(const char* func, const char* filename, int line, const char* format, ...);
-__attribute__((__format__ (OPAPRINTFFMT, 4, 5)))
-void opacorePanicf (const char* func, const char* filename, int line, const char* format, ...) ATTR_NORETURN;
+OPA_ATTR_PRINTF_FFLF
+ATTR_NORETURN
+void opacorePanicf (const char* func, const char* filename, int line, const char* format, ...);
 
 void opacoreLogStrerr(const char* func, const char* filename, int line, int errnum);
 
