@@ -152,73 +152,6 @@ void opacoreLogStrerr(const char* func, const char* filename, int line, int errn
 	opacoreLogErrf(func, filename, line, "system error %d; %s", errnum, msg);
 }
 
-#ifdef _WIN32
-#define strrev _strrev
-#else
-static void strrev(char* s) {
-	char* e = s + strlen(s) - 1;
-	for (; s < e; ++s, --e) {
-		char tmp = *s;
-		*s = *e;
-		*e = tmp;
-	}
-}
-#endif
-
-void u32toa(uint32_t v, char* s, int base) {
-	OASSERT(base >= 2 && base <= 36);
-	char* pos = s;
-	do {
-		int d = v % base;
-		v = v / base;
-		if (d < 10) {
-			*pos = '0' + (char)d;
-		} else {
-			*pos = 'a' + (char)(d - 10);
-		}
-		pos++;
-	} while (v > 0);
-	*pos = 0;
-	strrev(s);
-}
-
-void i32toa(int32_t v, char* s, int base) {
-	if (v < 0) {
-		*s = '-';
-		uint32_t uv = (v == INT32_MIN) ? ((uint32_t)INT32_MAX) + 1 : (uint32_t)0 - (uint32_t)v;
-		u32toa(uv, s + 1, base);
-	} else {
-		u32toa(v, s, base);
-	}
-}
-
-void u64toa(uint64_t v, char* s, int base) {
-	OASSERT(base >= 2 && base <= 36);
-	char* pos = s;
-	do {
-		int d = v % base;
-		v = v / base;
-		if (d < 10) {
-			*pos = '0' + (char)d;
-		} else {
-			*pos = 'a' + (char)(d - 10);
-		}
-		pos++;
-	} while (v > 0);
-	*pos = 0;
-	strrev(s);
-}
-
-void i64toa(int64_t v, char* s, int base) {
-	if (v < 0) {
-		*s = '-';
-		uint64_t uv = (v == INT64_MIN) ? ((uint64_t)INT64_MAX) + 1 : (uint64_t)0 - (uint64_t)v;
-		u64toa(uv, s + 1, base);
-	} else {
-		u64toa(v, s, base);
-	}
-}
-
 /*
 size_t strlcpy(char* dst, const char* src, size_t maxlen) {
 	if (maxlen == 0) {
@@ -238,14 +171,6 @@ size_t strlcat(char* dst, const char* src, size_t maxlen) {
 	return strlcpy(dst + len, src, maxlen - len);
 }
 */
-
-void* memdup(const void* src, size_t len) {
-	void* copy = OPAMALLOC(len);
-	if (copy != NULL) {
-		memcpy(copy, src, len);
-	}
-	return copy;
-}
 
 
 /*

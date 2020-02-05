@@ -159,13 +159,6 @@ void opacoreLogStrerr(const char* func, const char* filename, int line, int errn
 
 uint64_t opaTimeMillis(void);
 
-void u32toa(uint32_t v, char* s, int base);
-void i32toa( int32_t v, char* s, int base);
-void u64toa(uint64_t v, char* s, int base);
-void i64toa( int64_t v, char* s, int base);
-
-void* memdup(const void* src, size_t len);
-
 
 #define OPAVI_MAXLEN64 10
 
