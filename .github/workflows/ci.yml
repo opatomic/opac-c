@@ -1,0 +1,18 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+    - uses: actions/checkout@v1
+    - name: build
+      working-directory: build
+      run: |
+        ./build
+        CFLAGS="-DOPA_USEGMP" ./build
+        CFLAGS="-DOPA_NOTHREADS" ./build
