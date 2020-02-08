@@ -9,11 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifdef OPA_USEGMP
-#include "gmpcompat.h"
-#else
-#include "tommath.h"
-#endif
+#include "tommathex.h"
 
 
 typedef struct {

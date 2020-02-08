@@ -1,15 +1,22 @@
 /*
- * Copyright 2018-2019 Opatomic
+ * Copyright 2018-2020 Opatomic
  * Open sourced with ISC license. Refer to LICENSE for details.
  */
 
-#include <limits.h>
-#include <string.h>
-
-#ifdef OPA_USEGMP
-#include "gmpcompat.h"
+#include "tommathex.h"
 
 #define SASSERT(e) switch(0){case 0: case e:;}
+
+static void revdigs(char* s, size_t len) {
+	char* e = s + len - 1;
+	for (; s < e; ++s, --e) {
+		char tmp = *s;
+		*s = *e;
+		*e = tmp;
+	}
+}
+
+#ifdef OPA_USEGMP
 
 
 int mp_init(mp_int* a) {
@@ -141,26 +148,10 @@ int mp_toradix_n(const mp_int* a, char* str, int radix, int maxlen) {
 
 
 /**
- * Note: the following 2 functions come from libtommath
+ * Note: the following function comes from libtommath
  * https://github.com/libtom/libtommath/
- * https://github.com/libtom/libtommath/blob/v1.1.0/bn_reverse.c
  * https://github.com/libtom/libtommath/blob/v1.1.0/bn_mp_toradix_n.c
  */
-static void bn_reverse(unsigned char *s, int len) {
-	int     ix, iy;
-	unsigned char t;
-
-	ix = 0;
-	iy = len - 1;
-	while (ix < iy) {
-		t     = s[ix];
-		s[ix] = s[iy];
-		s[iy] = t;
-		++ix;
-		--iy;
-	}
-}
-
 int mp_toradix_n(const mp_int *a, char *str, int radix, int maxlen) {
 	static const char *const mp_s_rmap = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/";
 	int     res, digs;
@@ -214,7 +205,7 @@ int mp_toradix_n(const mp_int *a, char *str, int radix, int maxlen) {
 	/* reverse the digits of the string.  In this case _s points
 	 * to the first digit [exluding the sign] of the number
 	 */
-	bn_reverse((unsigned char *)_s, digs);
+	revdigs(_s, digs);
 
 	/* append a NULL so the string is properly terminated */
 	*str = '\0';
@@ -223,4 +214,104 @@ int mp_toradix_n(const mp_int *a, char *str, int radix, int maxlen) {
 	return MP_OKAY;
 }
 
+#else
+
+#define mpz_size(op) (op)->used
+#define mpz_getlimbn(op, i) (op)->dp[i]
+
 #endif
+
+int mp_to_decimal_n(const mp_int *a, char *str, size_t maxlen) {
+	// note: this function assumes that mp_digit bit count is >= 7
+#ifdef OPA_USEGMP
+	//assert(mp_bits_per_limb >= 7);
+#else
+	SASSERT(MP_DIGIT_BIT >= 7);
+#endif
+
+	static const char* chars1 =
+		"00000000001111111111222222222233333333334444444444"
+		"55555555556666666666777777777788888888889999999999";
+	static const char* chars2 =
+		"01234567890123456789012345678901234567890123456789"
+		"01234567890123456789012345678901234567890123456789";
+
+	int      res;
+	mp_int   t;
+	mp_digit r;
+	mp_digit v;
+	char   *_s   = str;
+	char   *stop = str + maxlen - 1;
+
+	if (maxlen < 2) {
+		return MP_VAL;
+	}
+
+	/* quick out if its zero */
+	if (mp_iszero(a) == MP_YES) {
+		*str++ = '0';
+		*str = '\0';
+		return MP_OKAY;
+	}
+
+	/* if it is negative output a - */
+	if (mp_isneg(a)) {
+		/* we have to reverse our digits later... but not the - sign!! */
+		++_s;
+		*str++ = '-';
+	}
+
+	if (mpz_size(a) > 1 && str < stop) {
+		if ((res = mp_init_copy(&t, a)) != MP_OKAY) {
+			return res;
+		}
+		if ((res = mp_abs(&t, &t)) != MP_OKAY) {
+			mp_clear(&t);
+			return res;
+		}
+		do {
+			if ((res = mp_div_d(&t, 100, &t, &r)) != MP_OKAY) {
+				mp_clear(&t);
+				return res;
+			}
+			*str++ = chars2[r];
+			if (str < stop) {
+				*str++ = chars1[r];
+			}
+		} while (mpz_size(&t) > 1 && str < stop);
+		v = mpz_getlimbn(&t, 0);
+		mp_clear(&t);
+	} else {
+		v = mpz_getlimbn(a, 0);
+	}
+
+	while (v >= 100 && str < stop) {
+		r = v % 100;
+		v = v / 100;
+		*str++ = chars2[r];
+		if (str < stop) {
+			*str++ = chars1[r];
+		}
+	}
+
+	if (str < stop) {
+		if (v >= 10) {
+			*str++ = chars2[v];
+			if (str < stop) {
+				*str++ = chars1[v];
+			}
+		} else {
+			*str++ = '0' + v;
+		}
+	}
+
+	/* reverse the digits of the string.  In this case _s points
+	 * to the first digit [excluding the sign] of the number
+	 */
+	revdigs(_s, str - _s);
+
+	/* append a NULL so the string is properly terminated */
+	*str = '\0';
+
+	return MP_OKAY;
+}

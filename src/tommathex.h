@@ -1,14 +1,14 @@
 /*
- * Copyright 2018-2019 Opatomic
+ * Copyright 2018-2020 Opatomic
  * Open sourced with ISC license. Refer to LICENSE for details.
  */
 
-#ifndef GMPCOMPAT_H_
-#define GMPCOMPAT_H_
+#ifndef TOMMATHEX_H_
+#define TOMMATHEX_H_
 
 #ifdef OPA_USEGMP
+
 #include <gmp.h>
-#include <stddef.h>
 
 #define mp_int __mpz_struct
 
@@ -52,7 +52,10 @@ int mp_import(mp_int* rop, size_t count, int order, size_t size, int endian, siz
 
 int mp_toradix_n(const mp_int* a, char* str, int radix, int maxlen);
 
+#else
+#include "tommath.h"
 #endif
 
+int mp_to_decimal_n(const mp_int *a, char *str, size_t maxlen);
 
 #endif

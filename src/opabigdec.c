@@ -740,11 +740,15 @@ int opabigdecToString(const opabigdec* a, char* str, int radix, size_t space) {
 		return 0;
 	}
 
-	if (space > INT_MAX) {
-		space = INT_MAX;
+	int err;
+	if (radix == 10) {
+		err = mp_to_decimal_n(&a->significand, str, space);
+	} else {
+		if (space > INT_MAX) {
+			space = INT_MAX;
+		}
+		err = mp_toradix_n(&a->significand, str, radix, (int) space);
 	}
-
-	int err = mp_toradix_n(&a->significand, str, radix, (int) space);
 
 	if (!err && a->exponent != 0) {
 		// skip past the chars that were already written
