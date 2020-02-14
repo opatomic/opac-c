@@ -27,6 +27,8 @@
 
 #ifdef NDEBUG
 #define OASSERT(c) ((void)(0))
+#elif defined(OPACOVTEST)
+#define OASSERT(c) opacoreCovTestAssert(OPAFUNC, OPAFILEBN, __LINE__, (c), #c)
 #elif defined(OPA_HIDEASSERT)
 #define OASSERT(c) do {if (!(c)) {OPAPANIC("assertion failed");}} while(0)
 #else
@@ -130,6 +132,10 @@ void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWOR
 #define OPA_ERR_OVERFLOW -5
 #define OPA_ERR_PARSE    -6
 
+
+#ifdef OPACOVTEST
+void opacoreCovTestAssert(const char* func, const char* filename, int line, int v, const char* s);
+#endif
 
 const char* opacoreFileBasename(const char* file);
 void opacoreLog   (const char* func, const char* filename, int line, const char* s);

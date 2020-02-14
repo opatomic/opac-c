@@ -152,6 +152,14 @@ void opacoreLogStrerr(const char* func, const char* filename, int line, int errn
 	opacoreLogErrf(func, filename, line, "system error %d; %s", errnum, msg);
 }
 
+#ifdef OPACOVTEST
+void opacoreCovTestAssert(const char* func, const char* filename, int line, int v, const char* s) {
+	if (!v) {
+		opacorePanicf(func, filename, line, "assertion '%s' failed", s);
+	}
+}
+#endif
+
 /*
 size_t strlcpy(char* dst, const char* src, size_t maxlen) {
 	if (maxlen == 0) {
