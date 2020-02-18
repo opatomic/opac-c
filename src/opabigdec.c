@@ -228,11 +228,11 @@ int opabigdecAdd(const opabigdec* a, const opabigdec* b, opabigdec* result) {
 		int err = opabigdecInit(&tmp);
 		if (!err) {
 			err = opabigdecAdd(a, b, &tmp);
+			if (!err) {
+				err = opabigdecCopy(&tmp, result);
+			}
+			opabigdecClear(&tmp);
 		}
-		if (!err) {
-			err = opabigdecCopy(&tmp, result);
-		}
-		opabigdecClear(&tmp);
 		return err;
 	} else {
 		int err = opabigdecCopy(b, result);
@@ -265,11 +265,11 @@ int opabigdecSub(const opabigdec* a, const opabigdec* b, opabigdec* result) {
 		int err = opabigdecInit(&tmp);
 		if (!err) {
 			err = opabigdecSub(a, b, &tmp);
+			if (!err) {
+				err = opabigdecCopy(&tmp, result);
+			}
+			opabigdecClear(&tmp);
 		}
-		if (!err) {
-			err = opabigdecCopy(&tmp, result);
-		}
-		opabigdecClear(&tmp);
 		return err;
 	} else if (a->exponent > b->exponent) {
 		int err = opabigdecCopy(a, result);
@@ -313,11 +313,11 @@ int opabigdecMul(const opabigdec* a, const opabigdec* b, opabigdec* result) {
 		int err = opabigdecInit(&tmp);
 		if (!err) {
 			err = opabigdecMul(a, b, &tmp);
+			if (!err) {
+				err = opabigdecCopy(&tmp, result);
+			}
+			opabigdecClear(&tmp);
 		}
-		if (!err) {
-			err = opabigdecCopy(&tmp, result);
-		}
-		opabigdecClear(&tmp);
 		return err;
 	} else {
 		int err = opabigdecCopy(b, result);
