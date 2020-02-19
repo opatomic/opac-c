@@ -32,9 +32,9 @@ void oparbFinish(oparb* rb);
  * Try to generate a raw request from a string typed by a user. If an error
  * occurs, then "err" is set to nonzero error code in returned struct.
  * Examples:
- *   PING              -> ["PING"]
- *   ECHO hi           -> ["ECHO",["hi"]]
- *   ECHO [arg1[]arg3] -> ["ECHO",["arg1",[],"arg3"]]
+ *   PING              -> [null,"PING"]
+ *   ECHO hi           -> [null,"ECHO",["hi"]]
+ *   ECHO [arg1[]arg3] -> [null,"ECHO",["arg1",[],"arg3"]]
  */
 oparb oparbParseUserCommand(const char* s);
 
