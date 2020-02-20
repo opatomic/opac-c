@@ -138,10 +138,6 @@ void oparbAddSO(oparb* rb, const uint8_t* so) {
 	oparbAppend(rb, so, opasolen(so));
 }
 
-static void oparbAddStrOrBin(oparb* rb, size_t len, const void* arg, uint8_t type) {
-	oparbAppendStrOrBin(rb, len, arg, type);
-}
-
 void oparbAddNumStr(oparb* rb, const char* s) {
 	if (!rb->err) {
 		opabigdec bd;
@@ -157,12 +153,12 @@ void oparbAddNumStr(oparb* rb, const char* s) {
 }
 
 void oparbAddBin(oparb* rb, size_t len, const void* arg) {
-	oparbAddStrOrBin(rb, len, arg, OPADEF_BIN_LPVI);
+	oparbAppendStrOrBin(rb, len, arg, OPADEF_BIN_LPVI);
 }
 
 void oparbAddStr(oparb* rb, size_t len, const void* arg) {
 	// TODO: check whether chars are valid UTF-8?
-	oparbAddStrOrBin(rb, len, arg, OPADEF_STR_LPVI);
+	oparbAppendStrOrBin(rb, len, arg, OPADEF_STR_LPVI);
 }
 
 void oparbStartArray(oparb* rb) {
@@ -280,7 +276,7 @@ static void oparbAddUserString(oparb* rb, const char* s, const char* end) {
 			s += 7;
 			size_t encLen = end - s;
 			size_t decLen = base64DecodeLen((const uint8_t*) s, encLen);
-			oparbAddStrOrBin(rb, decLen, NULL, OPADEF_BIN_LPVI);
+			oparbAddBin(rb, decLen, NULL);
 			if (!rb->err && !base64Decode(s, encLen, opabuffGetPos(&rb->buff, opabuffGetLen(&rb->buff) - decLen))) {
 				rb->errDesc = "base64 is invalid";
 				rb->err = OPA_ERR_PARSE;
