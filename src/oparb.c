@@ -231,6 +231,18 @@ static int oparbStrUnescape(const char* s, const char* end, opabuff* b) {
 				case 'n':  err = opabuffAppend1(b, '\n'); break;
 				case 'r':  err = opabuffAppend1(b, '\r'); break;
 				case 't':  err = opabuffAppend1(b, '\t'); break;
+				case 'x': {
+					if (s + 3 > end) {
+						return OPA_ERR_PARSE;
+					}
+					uint32_t uchar = (hexVal(s[1]) << 4) | hexVal(s[2]);
+					if (uchar > 0xFF) {
+						return OPA_ERR_PARSE;
+					}
+					err = opabuffAppend1(b, uchar);
+					s += 2;
+					break;
+				}
 				case 'u': {
 					if (s + 5 > end) {
 						return OPA_ERR_PARSE;
@@ -269,26 +281,41 @@ static int oparbStrUnescape(const char* s, const char* end, opabuff* b) {
 	return err;
 }
 
-static void oparbAddUserString(oparb* rb, const char* s, const char* end) {
-	if (end - s > 0 && *s == '~') {
-		if (end - s >= 4 && startsWith(s, "~bin")) {
-			s += 4;
-			oparbAddBin(rb, end - s, s);
+static void oparbAddUnEscapedStr(oparb* rb, const char* s, size_t len) {
+	if (!rb->err && len > 0 && *s == '~') {
+		if (len >= 4 && startsWith(s, "~bin")) {
+			oparbAddBin(rb, len - 4, s + 4);
 			return;
-		} else if (end - s >= 7 && startsWith(s, "~base64")) {
+		} else if (len >= 7 && startsWith(s, "~base64")) {
 			s += 7;
-			size_t encLen = end - s;
-			size_t decLen = base64DecodeLen((const uint8_t*) s, encLen);
+			len -= 7;
+			size_t decLen = base64DecodeLen((const uint8_t*) s, len);
 			oparbAddBin(rb, decLen, NULL);
-			if (!rb->err && !base64Decode(s, encLen, opabuffGetPos(&rb->buff, opabuffGetLen(&rb->buff) - decLen))) {
+			if (!rb->err && !base64Decode(s, len, opabuffGetPos(&rb->buff, opabuffGetLen(&rb->buff) - decLen))) {
 				rb->errDesc = "base64 is invalid";
 				rb->err = OPA_ERR_PARSE;
 			}
 			return;
-		} else if (end - s >= 2 && (s[1] == '~' || s[1] == '^' || s[1] == '`')) {
+		} else if (len >= 2 && (s[1] == '~' || s[1] == '^' || s[1] == '`')) {
 			++s;
+			--len;
+		} else {
+			rb->errDesc = "unknown ~ prefix sequence";
+			rb->err = OPA_ERR_PARSE;
+			return;
 		}
 	}
+	if (!rb->err) {
+		const uint8_t* invutf8 = opaFindInvalidUtf8((const uint8_t*)s, len);
+		if (invutf8 == NULL) {
+			oparbAddStr(rb, len, s);
+		} else {
+			oparbAddBin(rb, len, s);
+		}
+	}
+}
+
+static void oparbAddUserString(oparb* rb, const char* s, const char* end) {
 	opabuff tmp = {0};
 	if (!rb->err) {
 		rb->err = oparbStrUnescape(s, end, &tmp);
@@ -296,7 +323,9 @@ static void oparbAddUserString(oparb* rb, const char* s, const char* end) {
 			rb->errDesc = "invalid escape sequence";
 		}
 	}
-	oparbAddStr(rb, opabuffGetLen(&tmp), opabuffGetPos(&tmp, 0));
+	if (!rb->err) {
+		oparbAddUnEscapedStr(rb, (const char*) opabuffGetPos(&tmp, 0), opabuffGetLen(&tmp));
+	}
 	opabuffFree(&tmp);
 }
 
