@@ -219,6 +219,9 @@ static int oparbStrUnescape(const char* s, const char* end, opabuff* b) {
 		char ch = *s;
 		if (ch == '\\') {
 			++s;
+			if (s >= end) {
+				return OPA_ERR_PARSE;
+			}
 			switch (*s) {
 				case '"':  err = opabuffAppend1(b, '"' ); break;
 				case '\\': err = opabuffAppend1(b, '\\'); break;
