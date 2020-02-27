@@ -21,10 +21,11 @@
 #endif
 
 
-int opabigdecConvertErr(int tomerr) {
+int opabigdecConvertErr(mp_err tomerr) {
 	switch (tomerr) {
 		case MP_OKAY: return 0;
 		case MP_MEM:  return OPA_ERR_NOMEM;
+		case MP_BUF:
 		case MP_VAL:  return OPA_ERR_INVARG;
 		default:
 			OPALOGERRF("unknown libtom err %d", tomerr);
@@ -93,29 +94,15 @@ static void opabigdecNegate(opabigdec* a) {
 
 int opabigdecSet64(opabigdec* a, uint64_t val, int isNeg, int32_t exp) {
 #ifdef OPA_USEGMP
-	int err = mp_set_long_long(&a->significand, val);
+	mp_set_u64(&a->significand, val);
 #else
-	// TODO: just directly call mp_set_long_long() (when libtommath makes it faster in a future release)
-	//    see https://github.com/libtom/libtommath/commit/6dc8ae5b64f169eab9e9e572262b6d8011abee62
-	int err = 0;
-	if (val <= MP_DIGIT_MAX) {
-		// note: this is much faster than mp_set_long_long
-		mp_set(&a->significand, (mp_digit) val);
-	} else {
-		// if value is too big then must use slower function
-		// note: mp_set_long_long is slow
-		err = mp_set_long_long(&a->significand, val);
-	}
+	mp_set_u64(&a->significand, val);
 #endif
-	if (!err) {
-		if (isNeg) {
-			opabigdecNegate(a);
-		}
-		a->exponent = exp;
-	} else {
-		err = opabigdecConvertErr(err);
+	if (isNeg) {
+		opabigdecNegate(a);
 	}
-	return err;
+	a->exponent = exp;
+	return 0;
 }
 
 int opabigdecGet64(const opabigdec* a, uint64_t* pVal) {
@@ -126,7 +113,7 @@ int opabigdecGet64(const opabigdec* a, uint64_t* pVal) {
 			return OPA_ERR_OVERFLOW;
 		}
 		int32_t exp;
-		uint64_t val = mp_get_long_long(&a->significand);
+		uint64_t val = mp_get_u64(&a->significand);
 		for (exp = a->exponent; exp > 0 && val <= MAX10; --exp) {
 			val = val * 10;
 		}
@@ -156,7 +143,7 @@ int opabigdecGet64(const opabigdec* a, uint64_t* pVal) {
 			opabigdecClear(&tmp);
 			return OPA_ERR_OVERFLOW;
 		}
-		*pVal = mp_get_long_long(&tmp.significand);
+		*pVal = mp_get_u64(&tmp.significand);
 		opabigdecClear(&tmp);
 		return 0;
 	}
@@ -164,7 +151,7 @@ int opabigdecGet64(const opabigdec* a, uint64_t* pVal) {
 	if (mp_count_bits(&a->significand) > 64) {
 		return OPA_ERR_OVERFLOW;
 	}
-	*pVal = mp_get_long_long(&a->significand);
+	*pVal = mp_get_u64(&a->significand);
 	return 0;
 }
 
@@ -333,7 +320,7 @@ int opabigdecMul(const opabigdec* a, const opabigdec* b, opabigdec* result) {
 
 static int opabigdecImport3(opabigdec* bd, const uint8_t* src, size_t numBytes, int isNeg, int isBigEndian, int32_t exponent) {
 	int endian = isBigEndian ? 1 : -1;
-	int tomerr = mp_import(&bd->significand, numBytes, endian, 1, endian, 0, src);
+	int tomerr = mp_unpack(&bd->significand, numBytes, endian, 1, endian, 0, src);
 	if (tomerr != MP_OKAY) {
 		return opabigdecConvertErr(tomerr);
 	}
@@ -510,7 +497,7 @@ size_t opabigdecStoreSO(const opabigdec* val, uint8_t* buff, size_t buffLen) {
 	}
 
 	if (mp_count_bits(&val->significand) < 64) {
-		uint64_t val64 = mp_get_long_long(&val->significand);
+		uint64_t val64 = mp_get_u64(&val->significand);
 		if (val->exponent == 0) {
 			// varint
 			size_t lenNeeded = 1 + opaviStoreLen(val64);
@@ -744,10 +731,7 @@ int opabigdecToString(const opabigdec* a, char* str, int radix, size_t space) {
 	if (radix == 10) {
 		err = mp_to_decimal_n(&a->significand, str, space);
 	} else {
-		if (space > INT_MAX) {
-			space = INT_MAX;
-		}
-		err = mp_toradix_n(&a->significand, str, radix, (int) space);
+		err = mp_to_radix(&a->significand, str, space, NULL, radix);
 	}
 
 	if (!err && a->exponent != 0) {

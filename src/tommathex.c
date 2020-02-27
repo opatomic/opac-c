@@ -18,23 +18,22 @@ static void revdigs(char* s, size_t len) {
 
 #ifdef OPA_USEGMP
 
-
-int mp_init(mp_int* a) {
+mp_err mp_init(mp_int* a) {
 	mpz_init(a);
 	return MP_OKAY;
 }
 
-int mp_init_copy(mp_int* a, const mp_int* b) {
+mp_err mp_init_copy(mp_int* a, const mp_int* b) {
 	mpz_init_set(a, b);
 	return MP_OKAY;
 }
 
-int mp_copy(const mp_int* a, mp_int* b) {
+mp_err mp_copy(const mp_int* a, mp_int* b) {
 	mpz_set(b, a);
 	return MP_OKAY;
 }
 
-unsigned long long mp_get_long_long(const mp_int* a) {
+uint64_t mp_get_u64(const mp_int* a) {
 	SASSERT(sizeof(unsigned int) == 4);
 
 	unsigned int lsb = mpz_get_ui(a);
@@ -52,7 +51,7 @@ unsigned long long mp_get_long_long(const mp_int* a) {
 	return (((unsigned long long)msb) << 32) | lsb;
 }
 
-int mp_set_long_long(mp_int* a, unsigned long long b) {
+void mp_set_u64(mp_int* a, uint64_t b) {
 	SASSERT(sizeof(unsigned int) == 4);
 	if (b <= UINT_MAX) {
 		mpz_set_ui(a, (unsigned int)(b));
@@ -61,45 +60,44 @@ int mp_set_long_long(mp_int* a, unsigned long long b) {
 		mpz_mul_2exp(a, a, 32);
 		mpz_add_ui(a, a, (unsigned int)b);
 	}
-	return MP_OKAY;
 }
 
-int mp_abs(const mp_int* a, mp_int* b) {
+mp_err mp_abs(const mp_int* a, mp_int* b) {
 	mpz_abs(b, a);
 	return MP_OKAY;
 }
 
-int mp_add(const mp_int* a, const mp_int* b, mp_int* c) {
+mp_err mp_add(const mp_int* a, const mp_int* b, mp_int* c) {
 	mpz_add(c, a, b);
 	return MP_OKAY;
 }
 
-int mp_sub(const mp_int* a, const mp_int* b, mp_int* c) {
+mp_err mp_sub(const mp_int* a, const mp_int* b, mp_int* c) {
 	mpz_sub(c, a, b);
 	return MP_OKAY;
 }
 
-int mp_mul(const mp_int* a, const mp_int* b, mp_int* c) {
+mp_err mp_mul(const mp_int* a, const mp_int* b, mp_int* c) {
 	mpz_mul(c, a, b);
 	return MP_OKAY;
 }
 
-int mp_add_d(const mp_int* a, mp_digit b, mp_int* c) {
+mp_err mp_add_d(const mp_int* a, mp_digit b, mp_int* c) {
 	mpz_add_ui(c, a, b);
 	return MP_OKAY;
 }
 
-int mp_mul_d(const mp_int* a, mp_digit b, mp_int* c) {
+mp_err mp_mul_d(const mp_int* a, mp_digit b, mp_int* c) {
 	mpz_mul_ui(c, a, b);
 	return MP_OKAY;
 }
 
-int mp_div_d(const mp_int* a, mp_digit b, mp_int* c, mp_digit* d) {
+mp_err mp_div_d(const mp_int* a, mp_digit b, mp_int* c, mp_digit* d) {
 	*d = mpz_tdiv_q_ui(c, a, b);
 	return MP_OKAY;
 }
 
-int mp_import(mp_int* rop, size_t count, int order, size_t size, int endian, size_t nails, const void* op) {
+mp_err mp_unpack(mp_int* rop, size_t count, int order, size_t size, int endian, size_t nails, const void* op) {
 	mpz_import(rop, count, order, size, endian, nails, op);
 	return MP_OKAY;
 }
@@ -148,19 +146,22 @@ int mp_toradix_n(const mp_int* a, char* str, int radix, int maxlen) {
 
 
 /**
- * Note: the following function comes from libtommath
+ * Note: the following function is adapted from libtommath
  * https://github.com/libtom/libtommath/
- * https://github.com/libtom/libtommath/blob/v1.1.0/bn_mp_toradix_n.c
  */
-int mp_toradix_n(const mp_int *a, char *str, int radix, int maxlen) {
+mp_err mp_to_radix(const mp_int *a, char *str, size_t maxlen, size_t *written, int radix) {
 	static const char *const mp_s_rmap = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/";
-	int     res, digs;
+	size_t  digs;
+	mp_err  err;
 	mp_int  t;
 	mp_digit d;
 	char   *_s = str;
 
-	/* check range of the maxlen, radix */
-	if ((maxlen < 2) || (radix < 2) || (radix > 64)) {
+	/* check range of radix and size*/
+	if (maxlen < 2u) {
+		return MP_BUF;
+	}
+	if ((radix < 2) || (radix > 64)) {
 		return MP_VAL;
 	}
 
@@ -168,40 +169,41 @@ int mp_toradix_n(const mp_int *a, char *str, int radix, int maxlen) {
 	if (mp_iszero(a) == MP_YES) {
 		*str++ = '0';
 		*str = '\0';
+		if (written != NULL) {
+			*written = 2u;
+		}
 		return MP_OKAY;
 	}
 
-	if ((res = mp_init_copy(&t, a)) != MP_OKAY) {
-		return res;
+	if ((err = mp_init_copy(&t, a)) != MP_OKAY) {
+		return err;
 	}
 
 	/* if it is negative output a - */
-	if (mp_isneg(&t)) {
+	if (mp_isneg(&t) == MP_YES) {
 		/* we have to reverse our digits later... but not the - sign!! */
 		++_s;
 
 		/* store the flag and mark the number as positive */
 		*str++ = '-';
-		mpz_abs(&t, &t);
+		mp_abs(&t, &t);
 
 		/* subtract a char */
 		--maxlen;
 	}
-
-	digs = 0;
+	digs = 0u;
 	while (mp_iszero(&t) == MP_NO) {
-		if (--maxlen < 1) {
+		if (--maxlen < 1u) {
 			/* no more room */
-			break;
+			err = MP_BUF;
+			goto LBL_ERR;
 		}
-		if ((res = mp_div_d(&t, (mp_digit)radix, &t, &d)) != MP_OKAY) {
-			mp_clear(&t);
-			return res;
+		if ((err = mp_div_d(&t, (mp_digit)radix, &t, &d)) != MP_OKAY) {
+			goto LBL_ERR;
 		}
 		*str++ = mp_s_rmap[d];
 		++digs;
 	}
-
 	/* reverse the digits of the string.  In this case _s points
 	 * to the first digit [exluding the sign] of the number
 	 */
@@ -209,9 +211,15 @@ int mp_toradix_n(const mp_int *a, char *str, int radix, int maxlen) {
 
 	/* append a NULL so the string is properly terminated */
 	*str = '\0';
+	digs++;
 
+	if (written != NULL) {
+		*written = (mp_isneg(a) == MP_YES) ? (digs + 1u): digs;
+	}
+
+	LBL_ERR:
 	mp_clear(&t);
-	return MP_OKAY;
+	return err;
 }
 
 #else
@@ -221,7 +229,7 @@ int mp_toradix_n(const mp_int *a, char *str, int radix, int maxlen) {
 
 #endif
 
-int mp_to_decimal_n(const mp_int *a, char *str, size_t maxlen) {
+mp_err mp_to_decimal_n(const mp_int *a, char *str, size_t maxlen) {
 	// note: this function assumes that mp_digit bit count is >= 7
 #ifdef OPA_USEGMP
 	//assert(mp_bits_per_limb >= 7);
