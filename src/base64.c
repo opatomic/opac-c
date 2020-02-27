@@ -70,9 +70,9 @@ size_t base64DecodeLen(const void* src, size_t srcLen) {
 	const uint8_t* src8 = src;
 	if (srcLen > 0 && src8[srcLen - 1] == '=') {
 		srcLen--;
-	}
-	if (srcLen > 0 && src8[srcLen - 1] == '=') {
-		srcLen--;
+		if (srcLen > 0 && src8[srcLen - 1] == '=') {
+			srcLen--;
+		}
 	}
 	size_t extra = srcLen % 4;
 	return ((srcLen / 4) * 3) + (extra == 0 ? 0 : (extra - 1));
