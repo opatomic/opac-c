@@ -59,6 +59,6 @@ mp_err mp_to_radix(const mp_int* a, char* str, size_t maxlen, size_t* written, i
 #include "tommath.h"
 #endif
 
-mp_err mp_to_decimal_n(const mp_int *a, char *str, size_t maxlen);
+mp_err mp_to_radix10(const mp_int *a, char *str, size_t maxlen, size_t *written);
 
 #endif

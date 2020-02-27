@@ -229,7 +229,7 @@ mp_err mp_to_radix(const mp_int *a, char *str, size_t maxlen, size_t *written, i
 
 #endif
 
-mp_err mp_to_decimal_n(const mp_int *a, char *str, size_t maxlen) {
+mp_err mp_to_radix10(const mp_int *a, char *str, size_t maxlen, size_t *written) {
 	// note: this function assumes that mp_digit bit count is >= 7
 #ifdef OPA_USEGMP
 	//assert(mp_bits_per_limb >= 7);
@@ -251,7 +251,7 @@ mp_err mp_to_decimal_n(const mp_int *a, char *str, size_t maxlen) {
 	char   *_s   = str;
 	char   *stop = str + maxlen - 1;
 
-	if (maxlen < 2) {
+	if (maxlen < 2u) {
 		return MP_VAL;
 	}
 
@@ -259,11 +259,14 @@ mp_err mp_to_decimal_n(const mp_int *a, char *str, size_t maxlen) {
 	if (mp_iszero(a) == MP_YES) {
 		*str++ = '0';
 		*str = '\0';
+		if (written != NULL) {
+			*written = 2u;
+		}
 		return MP_OKAY;
 	}
 
 	/* if it is negative output a - */
-	if (mp_isneg(a)) {
+	if (mp_isneg(a) == MP_YES) {
 		/* we have to reverse our digits later... but not the - sign!! */
 		++_s;
 		*str++ = '-';
@@ -319,7 +322,11 @@ mp_err mp_to_decimal_n(const mp_int *a, char *str, size_t maxlen) {
 	revdigs(_s, str - _s);
 
 	/* append a NULL so the string is properly terminated */
-	*str = '\0';
+	*str++ = '\0';
+
+	if (written != NULL) {
+		*written = (mp_isneg(a) == MP_YES) ? ((str - _s) + 1u) : str - _s;
+	}
 
 	return MP_OKAY;
 }

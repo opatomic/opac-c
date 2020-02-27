@@ -714,6 +714,7 @@ static void opabigDecAppendExp(int32_t exp, char radix, char* str, size_t maxLen
 }
 
 // basic test: ECHO [210e-10 210e-9 210e-8 210e-7 210e-6 210e-5 210e-4 210e-3 210e-2 210e-1 210e0 210e1 210e2 210e3 210e4 210e5 210e6 210e7 210e8 210e9 210e10]
+// TODO: match mp_to_radix api (return str length in extra parameter pointer)
 int opabigdecToString(const opabigdec* a, char* str, int radix, size_t space) {
 	if (radix < 2 || radix > 10) {
 		// only support up to base 10 for now. cannot mix hex chars with e/E exponent separator
@@ -728,15 +729,16 @@ int opabigdecToString(const opabigdec* a, char* str, int radix, size_t space) {
 	}
 
 	int err;
+	size_t strBytes;
 	if (radix == 10) {
-		err = mp_to_decimal_n(&a->significand, str, space);
+		err = mp_to_radix10(&a->significand, str, space, &strBytes);
 	} else {
-		err = mp_to_radix(&a->significand, str, space, NULL, radix);
+		err = mp_to_radix(&a->significand, str, space, &strBytes, radix);
 	}
 
 	if (!err && a->exponent != 0) {
 		// skip past the chars that were already written
-		size_t slen = strlen(str);
+		size_t slen = strBytes > 0 ? strBytes - 1 : 0;
 		if (slen > 0 && str[0] == '-') {
 			++str;
 			--slen;
