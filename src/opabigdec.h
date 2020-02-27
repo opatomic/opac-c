@@ -37,7 +37,7 @@ size_t opabigdecStoreSO(const opabigdec* val, uint8_t* buff, size_t buffLen);
 
 int opabigdecFromStr(opabigdec* v, const char* str, int radix);
 size_t opabigdecMaxStringLen(const opabigdec* a, int radix);
-int opabigdecToString(const opabigdec* a, char* str, int radix, size_t space);
+int opabigdecToString(const opabigdec* a, char* str, size_t space, size_t* pWritten, int radix);
 
 
 #endif

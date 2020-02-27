@@ -245,9 +245,11 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 					err = opabuffSetLen(b, origLen + maxlen + 1);
 					if (!err) {
 						char* strpos = (char*) opabuffGetPos(b, origLen);
-						err = opabigdecToString(&bd, strpos, 10, maxlen);
+						size_t lenWithNull;
+						err = opabigdecToString(&bd, strpos, maxlen, &lenWithNull, 10);
 						if (!err) {
-							err = opabuffSetLen(b, origLen + strlen(strpos));
+							OASSERT(lenWithNull > 0);
+							err = opabuffSetLen(b, origLen + lenWithNull - 1);
 						}
 					}
 				}
