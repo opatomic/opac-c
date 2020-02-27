@@ -223,6 +223,7 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 		}
 
 		case OPADEF_ZERO:
+			return opabuffAppend1(b, '0');
 		case OPADEF_NEGVARINT:
 		case OPADEF_POSVARINT:
 		case OPADEF_NEGBIGINT:
