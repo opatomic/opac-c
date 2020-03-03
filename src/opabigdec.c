@@ -105,7 +105,7 @@ int opabigdecSet64(opabigdec* a, uint64_t val, int isNeg, int32_t exp) {
 	return 0;
 }
 
-int opabigdecGet64(const opabigdec* a, uint64_t* pVal) {
+int opabigdecGetMag64(const opabigdec* a, uint64_t* pVal) {
 	// TODO: test this!
 	if (a->exponent > 0) {
 		static const uint64_t MAX10 = (UINT64_MAX) / 10;
@@ -113,7 +113,7 @@ int opabigdecGet64(const opabigdec* a, uint64_t* pVal) {
 			return OPA_ERR_OVERFLOW;
 		}
 		int32_t exp;
-		uint64_t val = mp_get_u64(&a->significand);
+		uint64_t val = mp_get_mag_u64(&a->significand);
 		for (exp = a->exponent; exp > 0 && val <= MAX10; --exp) {
 			val = val * 10;
 		}
@@ -143,7 +143,7 @@ int opabigdecGet64(const opabigdec* a, uint64_t* pVal) {
 			opabigdecClear(&tmp);
 			return OPA_ERR_OVERFLOW;
 		}
-		*pVal = mp_get_u64(&tmp.significand);
+		*pVal = mp_get_mag_u64(&tmp.significand);
 		opabigdecClear(&tmp);
 		return 0;
 	}
@@ -151,7 +151,7 @@ int opabigdecGet64(const opabigdec* a, uint64_t* pVal) {
 	if (mp_count_bits(&a->significand) > 64) {
 		return OPA_ERR_OVERFLOW;
 	}
-	*pVal = mp_get_u64(&a->significand);
+	*pVal = mp_get_mag_u64(&a->significand);
 	return 0;
 }
 
@@ -497,7 +497,7 @@ size_t opabigdecStoreSO(const opabigdec* val, uint8_t* buff, size_t buffLen) {
 	}
 
 	if (mp_count_bits(&val->significand) < 64) {
-		uint64_t val64 = mp_get_u64(&val->significand);
+		uint64_t val64 = mp_get_mag_u64(&val->significand);
 		if (val->exponent == 0) {
 			// varint
 			size_t lenNeeded = 1 + opaviStoreLen(val64);

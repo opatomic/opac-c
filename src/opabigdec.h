@@ -26,7 +26,7 @@ void opabigdecClear(opabigdec* a);
 int opabigdecIsNeg(const opabigdec* a);
 int opabigdecIsZero(const opabigdec* a);
 int opabigdecSet64(opabigdec* a, uint64_t val, int isNeg, int32_t exp);
-int opabigdecGet64(const opabigdec* a, uint64_t* pVal);
+int opabigdecGetMag64(const opabigdec* a, uint64_t* pVal);
 
 int opabigdecAdd(const opabigdec* a, const opabigdec* b, opabigdec* result);
 int opabigdecSub(const opabigdec* a, const opabigdec* b, opabigdec* result);

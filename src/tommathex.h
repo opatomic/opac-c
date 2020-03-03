@@ -38,7 +38,7 @@ mp_err mp_init(mp_int* a);
 mp_err mp_init_copy(mp_int* a, const mp_int* b);
 mp_err mp_copy(const mp_int* a, mp_int* b);
 
-uint64_t mp_get_u64(const mp_int* a);
+uint64_t mp_get_mag_u64(const mp_int* a);
 void mp_set_u64(mp_int* a, uint64_t b);
 
 mp_err mp_abs(const mp_int* a, mp_int* b);

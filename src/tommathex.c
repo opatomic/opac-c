@@ -33,7 +33,7 @@ mp_err mp_copy(const mp_int* a, mp_int* b) {
 	return MP_OKAY;
 }
 
-uint64_t mp_get_u64(const mp_int* a) {
+uint64_t mp_get_mag_u64(const mp_int* a) {
 	SASSERT(sizeof(unsigned int) == 4);
 
 	unsigned int lsb = mpz_get_ui(a);
