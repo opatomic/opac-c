@@ -61,10 +61,14 @@ void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWOR
 	// TODO: have FormatMessage() allocate buffer to reduce stack size required? error cases should be infrequent so performance would not be affected
 	const char* msg = "cannot determine err string in FormatMessage()";
 	char tmpbuff[TMPBUFFLEN];
-	if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), tmpbuff, sizeof(tmpbuff), NULL) != 0) {
+	if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), tmpbuff, sizeof(tmpbuff), NULL) > 0) {
 		msg = tmpbuff;
+		size_t len = strlen(tmpbuff);
+		if (len > 0 && tmpbuff[len - 1] == '\n') {
+			tmpbuff[--len] = 0;
+		}
 	}
-	opacoreLogErrf(func, filename, line, "system error %lu; %s", err, msg);
+	opacoreLogErrf(func, filename, line, "system error 0x%lx; %s", err, msg);
 }
 
 #else
