@@ -259,7 +259,7 @@ static int oparbStrUnescape(const char* s, const char* end, opabuff* b) {
 						if (!err) {
 							err = opabuffAppend1(b, 0x80 | (uchar & 0x3F));
 						}
-					} else {
+					} else if (uchar < 0xD800 || uchar > 0xDFFF) {
 						err = opabuffAppend1(b, 0xE0 | ((uchar >> 12) & 0x0F));
 						if (!err) {
 							err = opabuffAppend1(b, 0x80 | ((uchar >> 6) & 0x3F));
@@ -267,6 +267,40 @@ static int oparbStrUnescape(const char* s, const char* end, opabuff* b) {
 						if (!err) {
 							err = opabuffAppend1(b, 0x80 | (uchar & 0x3F));
 						}
+					} else {
+						// surrogate pair
+						if (uchar >= 0xDC00) {
+							// 0xDC00-0xDFFF is an invalid 1st value (must be 2nd value of a surrogate pair)
+							return OPA_ERR_PARSE;
+						}
+						if (s + 11 > end || s[5] != '\\' || s[6] != 'u') {
+							return OPA_ERR_PARSE;
+						}
+						uint32_t uchar2 = (hexVal(s[7]) << 12) | (hexVal(s[8]) << 8) | (hexVal(s[9]) << 4) | hexVal(s[10]);
+						if (uchar2 > 0xFFFF) {
+							return OPA_ERR_PARSE;
+						}
+						if (uchar2 < 0xDC00 || uchar2 > 0xDFFF) {
+							// 2nd value of surrogate pair must be 0xDC00-0xDFFF
+							return OPA_ERR_PARSE;
+						}
+
+						// convert to utf32
+						// See RFC 2781, Section 2.2
+						// http://www.ietf.org/rfc/rfc2781.txt
+						int32_t code = (((uchar & 0x3FF) << 10) | (uchar2 & 0x3FF)) + 0x10000;
+						// convert to utf8
+						err = opabuffAppend1(b, 0xF0 | (code >> 18));
+						if (!err) {
+							err = opabuffAppend1(b, 0x80 | ((code >> 12) & 0x3F));
+						}
+						if (!err) {
+							err = opabuffAppend1(b, 0x80 | ((code >> 6) & 0x3F));
+						}
+						if (!err) {
+							err = opabuffAppend1(b, 0x80 | (code & 0x3F));
+						}
+						s += 6;
 					}
 					s += 4;
 					break;
