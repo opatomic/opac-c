@@ -8,6 +8,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
 #include "opabuff.h"
 #include "opacore.h"
 
@@ -20,34 +27,62 @@
 // TODO: use explicit_bzero in freebsd?
 
 #ifdef _WIN32
-#include <windows.h>
+
 #define zeromem SecureZeroMemory
+#define ALIGNEDFREE F_AlignedFree
+
+typedef void* (*AlignedMallocFuncType)(size_t size, size_t alignment);
+typedef void  (*AlignedFreeFuncType)(void* memblock);
+
+AlignedMallocFuncType F_AlignedMalloc = NULL;
+AlignedFreeFuncType   F_AlignedFree   = OPAFREE;
+
+static void loadFuncs(void) {
+	static int loaded = 0;
+	if (!loaded) {
+		HMODULE h = LoadLibrary("msvcrt.dll");
+		if (h != NULL) {
+			FARPROC func1 = GetProcAddress(h, "_aligned_malloc");
+			FARPROC func2 = GetProcAddress(h, "_aligned_free");
+			if (func1 != NULL && func2 != NULL) {
+				F_AlignedMalloc = (AlignedMallocFuncType) func1;
+				F_AlignedFree = (AlignedFreeFuncType) func2;
+			}
+		}
+		loaded = 1;
+	}
+}
+
 static int posix_memalign(void** memptr, size_t alignment, size_t size) {
+	loadFuncs();
+	if (F_AlignedMalloc == NULL) {
+		*memptr = OPAMALLOC(size);
+		return *memptr == NULL ? ENOMEM : 0;
+	}
 	// note: possible incompatibility here: _aligned_malloc will set errno; but posix_memalign does not set errno
-	*memptr = _aligned_malloc(size, alignment);
+	*memptr = F_AlignedMalloc(size, alignment);
 	return *memptr == NULL ? errno : 0;
 }
+
 static int mlock(const void* addr, size_t len) {
 	return VirtualLock((void*) addr, len) ? 0 : -1;
 }
+
 static int munlock(const void* addr, size_t len) {
 	return VirtualUnlock((void*) addr, len) ? 0 : -1;
 }
+
 #else
-#include <sys/mman.h>
-#include <unistd.h>
+
+#define ALIGNEDFREE free
+
 static void zeromem(void* s, size_t n) {
 	// TODO: is this correct?
 	// http://www.daemonology.net/blog/2014-09-04-how-to-zero-a-buffer.html
 	static void* (* const volatile memsetFunc)(void*, int, size_t) = memset;
 	(memsetFunc)(s, 0, n);
 }
-#endif
 
-#ifdef _WIN32
-#define ALIGNEDFREE _aligned_free
-#else
-#define ALIGNEDFREE free
 #endif
 
 static size_t pagesize(void) {
