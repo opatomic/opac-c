@@ -29,13 +29,13 @@
 #ifdef _WIN32
 
 #define zeromem SecureZeroMemory
-#define ALIGNEDFREE F_AlignedFree
+#define ALIGNEDFREE opawinAlignedFree
 
 typedef void* (*AlignedMallocFuncType)(size_t size, size_t alignment);
 typedef void  (*AlignedFreeFuncType)(void* memblock);
 
 AlignedMallocFuncType F_AlignedMalloc = NULL;
-AlignedFreeFuncType   F_AlignedFree   = OPAFREE;
+AlignedFreeFuncType   F_AlignedFree   = NULL;
 
 static void loadFuncs(void) {
 	static int loaded = 0;
@@ -62,6 +62,15 @@ static int posix_memalign(void** memptr, size_t alignment, size_t size) {
 	// note: possible incompatibility here: _aligned_malloc will set errno; but posix_memalign does not set errno
 	*memptr = F_AlignedMalloc(size, alignment);
 	return *memptr == NULL ? errno : 0;
+}
+
+static void opawinAlignedFree(void* a) {
+	loadFuncs();
+	if (F_AlignedFree == NULL) {
+		OPAFREE(a);
+	} else {
+		F_AlignedFree(a);
+	}
 }
 
 static int mlock(const void* addr, size_t len) {
