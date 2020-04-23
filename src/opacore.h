@@ -28,7 +28,7 @@
 #ifdef NDEBUG
 #define OASSERT(c) ((void)(0))
 #elif defined(OPACOVTEST)
-#define OASSERT(c) opacoreCovTestAssert(OPAFUNC, OPAFILEBN, __LINE__, (c), #c)
+#define OASSERT(c) opacoreCovTestAssert(OPAFUNC, __FILE__, __LINE__, (c), #c)
 #elif defined(OPA_HIDEASSERT)
 #define OASSERT(c) do {if (!(c)) {OPAPANIC("assertion failed");}} while(0)
 #else
@@ -55,24 +55,21 @@
 typedef unsigned long DWORD;
 #endif
 
-//#define OPAFILEBN (strrchr(__FILE__, OPA_DIRCHAR) != NULL ? strrchr(__FILE__, OPA_DIRCHAR) + 1 : __FILE__)
-#define OPAFILEBN opacoreFileBasename(__FILE__)
+#define OPALOGF(format, ...)    opacoreLogf   (OPAFUNC, __FILE__, __LINE__, format, __VA_ARGS__)
+#define OPALOGERRF(format, ...) opacoreLogErrf(OPAFUNC, __FILE__, __LINE__, format, __VA_ARGS__)
+#define OPAPANICF(format, ...)  opacorePanicf (OPAFUNC, __FILE__, __LINE__, format, __VA_ARGS__)
 
-#define OPALOGF(format, ...)    opacoreLogf   (OPAFUNC, OPAFILEBN, __LINE__, format, __VA_ARGS__)
-#define OPALOGERRF(format, ...) opacoreLogErrf(OPAFUNC, OPAFILEBN, __LINE__, format, __VA_ARGS__)
-#define OPAPANICF(format, ...)  opacorePanicf (OPAFUNC, OPAFILEBN, __LINE__, format, __VA_ARGS__)
-
-#define OPALOG(str)    opacoreLog   (OPAFUNC, OPAFILEBN, __LINE__, str)
-#define OPALOGERR(str) opacoreLogErr(OPAFUNC, OPAFILEBN, __LINE__, str)
-#define OPAPANIC(str)  opacorePanic (OPAFUNC, OPAFILEBN, __LINE__, str)
+#define OPALOG(str)    opacoreLog   (OPAFUNC, __FILE__, __LINE__, str)
+#define OPALOGERR(str) opacoreLogErr(OPAFUNC, __FILE__, __LINE__, str)
+#define OPAPANIC(str)  opacorePanic (OPAFUNC, __FILE__, __LINE__, str)
 
 #ifdef _WIN32
 void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWORD err);
-#define LOGWINERRCODE(code) opacoreLogWinErrCode(OPAFUNC, OPAFILEBN, __LINE__, code)
+#define LOGWINERRCODE(code) opacoreLogWinErrCode(OPAFUNC, __FILE__, __LINE__, code)
 #define LOGWINERR() LOGWINERRCODE(GetLastError())
 #endif
 
-#define LOGSYSERR(errcode) opacoreLogStrerr(OPAFUNC, OPAFILEBN, __LINE__, errcode)
+#define LOGSYSERR(errcode) opacoreLogStrerr(OPAFUNC, __FILE__, __LINE__, errcode)
 #define LOGSYSERRNO() LOGSYSERR(errno)
 
 
@@ -137,7 +134,6 @@ void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWOR
 void opacoreCovTestAssert(const char* func, const char* filename, int line, int v, const char* s);
 #endif
 
-const char* opacoreFileBasename(const char* file);
 void opacoreLog   (const char* func, const char* filename, int line, const char* s);
 void opacoreLogErr(const char* func, const char* filename, int line, const char* s);
 ATTR_NORETURN
