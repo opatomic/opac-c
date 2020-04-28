@@ -92,6 +92,13 @@ uint64_t opaTimeMillis(void) {
 	return (t.tv_sec * 1000) + (t.tv_usec / 1000);
 }
 
+void opaszmem(void* s, size_t n) {
+	// TODO: is this correct?
+	// http://www.daemonology.net/blog/2014-09-04-how-to-zero-a-buffer.html
+	static void* (* const volatile memsetFunc)(void*, int, size_t) = memset;
+	(memsetFunc)(s, 0, n);
+}
+
 #endif
 
 
@@ -195,6 +202,13 @@ size_t opaviGetStoredLen(const uint8_t* buff) {
 	return __builtin_ctz(*buff | 0x100) + 1;
 }
 */
+
+void opazeroAndFree(void* ptr, size_t len) {
+	if (ptr != NULL) {
+		opaszmem(ptr, len);
+		OPAFREE(ptr);
+	}
+}
 
 size_t opaviGetStoredLen(const uint8_t* buff) {
 	const uint8_t* start = buff;

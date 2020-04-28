@@ -158,7 +158,13 @@ void opacorePanicf (const char* func, const char* filename, int line, const char
 
 void opacoreLogStrerr(const char* func, const char* filename, int line, int errnum);
 
+#ifdef _WIN32
+#define opaszmem SecureZeroMemory
+#else
+void opaszmem(void* ptr, size_t len);
+#endif
 
+void opazeroAndFree(void* ptr, size_t len);
 uint64_t opaTimeMillis(void);
 
 

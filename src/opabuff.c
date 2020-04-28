@@ -28,7 +28,6 @@
 
 #ifdef _WIN32
 
-#define zeromem SecureZeroMemory
 #define ALIGNEDFREE opawinAlignedFree
 
 typedef void* (*AlignedMallocFuncType)(size_t size, size_t alignment);
@@ -84,13 +83,6 @@ static int munlock(const void* addr, size_t len) {
 #else
 
 #define ALIGNEDFREE free
-
-static void zeromem(void* s, size_t n) {
-	// TODO: is this correct?
-	// http://www.daemonology.net/blog/2014-09-04-how-to-zero-a-buffer.html
-	static void* (* const volatile memsetFunc)(void*, int, size_t) = memset;
-	(memsetFunc)(s, 0, n);
-}
 
 #endif
 
@@ -156,7 +148,7 @@ static int opabuffResize(opabuff* b, size_t newCap) {
 	b->cap = newCap;
 	if (b->flags & OPABUFF_F_ZERO) {
 		// zero unused bytes
-		zeromem(b->data + b->len, b->cap - b->len);
+		opaszmem(b->data + b->len, b->cap - b->len);
 	}
 	return 0;
 }
@@ -219,7 +211,7 @@ int opabuffRemove(opabuff* b, size_t offset, size_t len) {
 	memmove(b->data + offset, b->data + offset + len, b->len - (offset + len));
 	b->len -= len;
 	if (b->flags & OPABUFF_F_ZERO) {
-		zeromem(b->data + b->len, len);
+		opaszmem(b->data + b->len, len);
 	}
 	return 0;
 }
@@ -257,7 +249,7 @@ int opabuffSetLen(opabuff* b, size_t newlen) {
 		return err;
 	} else {
 		if (b->flags & OPABUFF_F_ZERO) {
-			zeromem(b->data + newlen, b->len - newlen);
+			opaszmem(b->data + newlen, b->len - newlen);
 		}
 		b->len = newlen;
 		return 0;
@@ -273,7 +265,7 @@ void opabuffRemoveFreeSpace(opabuff* b) {
 
 void opabuffFree(opabuff* b) {
 	if (b->flags & OPABUFF_F_ZERO) {
-		zeromem(b->data, b->len);
+		opaszmem(b->data, b->len);
 	}
 	if (b->flags & OPABUFF_F_MLOCKED) {
 		munlock(b->data, b->cap);
