@@ -10,6 +10,7 @@
 #include "opacore.h"
 #include "opaso.h"
 
+static const char* HEXCHARS = "0123456789ABCDEF";
 
 int opasoIsNumber(uint8_t type) {
 	switch (type) {
@@ -110,8 +111,7 @@ static int opasoWriteIndent(opabuff* b, const char* space, unsigned int depth) {
 	return err;
 }
 
-static int opasoEscapeString(const uint8_t* src, size_t len, opabuff* b) {
-	static const char* HEXCHARS = "0123456789ABCDEF";
+static int opasoEscapeString(const uint8_t* src, size_t len, int allowX, opabuff* b) {
 	int err = 0;
 	const uint8_t* end = src + len;
 	for (; src < end && !err; ++src) {
@@ -127,15 +127,37 @@ static int opasoEscapeString(const uint8_t* src, size_t len, opabuff* b) {
 			default:
 				if (ch < 0x20) {
 					// must escape control chars
-					uint8_t tmp[6] = {'\\', 'u', '0', '0'};
-					tmp[4] = HEXCHARS[(ch & 0xF0) >> 4];
-					tmp[5] = HEXCHARS[(ch & 0x0F)];
-					err = opabuffAppend(b, tmp, 6);
+					err = opabuffAppendStr(b, allowX ? "\\x" : "\\u00");
+					if (!err) {
+						uint8_t tmp[2];
+						tmp[0] = HEXCHARS[(ch & 0xF0) >> 4];
+						tmp[1] = HEXCHARS[(ch & 0x0F)];
+						err = opabuffAppend(b, tmp, 2);
+					}
 				} else {
 					err = opabuffAppend1(b, ch);
 				}
 				break;
 		}
+	}
+	return err;
+}
+
+static int opasoEscapeBin(const uint8_t* src, size_t len, opabuff* b) {
+	int err = 0;
+	const uint8_t* end = src + len;
+	while (src < end && !err) {
+		const uint8_t* invch = opaFindInvalidUtf8(src, end - src);
+		if (invch == NULL) {
+			err = opasoEscapeString(src, end - src, 1, b);
+			break;
+		}
+		err = opasoEscapeString(src, invch - src, 1, b);
+		if (!err) {
+			char tmp[4] = {'\\', 'x', HEXCHARS[((*invch) >> 4) & 0xF], HEXCHARS[(*invch) & 0xF]};
+			err = opabuffAppend(b, tmp, 4);
+		}
+		src = invch + 1;
 	}
 	return err;
 }
@@ -148,7 +170,7 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 		case OPADEF_FALSE:       return opabuffAppendStr(b, "false");
 		case OPADEF_TRUE:        return opabuffAppendStr(b, "true");
 		case OPADEF_SORTMAX:     return opabuffAppendStr(b, "SORTMAX");
-		case OPADEF_BIN_EMPTY:   return opabuffAppendStr(b, "\"~base64\"");
+		case OPADEF_BIN_EMPTY:   return opabuffAppendStr(b, "\"~bin\"");
 		case OPADEF_STR_EMPTY:   return opabuffAppendStr(b, "\"\"");
 		case OPADEF_ARRAY_EMPTY: return opabuffAppendStr(b, "[]");
 
@@ -184,21 +206,44 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 			return err;
 		}
 		case OPADEF_BIN_LPVI: {
-			int err = opabuffAppendStr(b, "\"~base64");
+			uint64_t slen;
+			int err = opaviLoadWithErr(src + 1, &slen, &src);
 			if (!err) {
-				uint64_t slen;
-				err = opaviLoadWithErr(src + 1, &slen, &src);
+				size_t b64len = base64EncodeLen(slen, 0);
+				int append64 = 1;
 				if (!err) {
-					size_t pos = opabuffGetLen(b);
-					err = opabuffAppend(b, NULL, base64EncodeLen(slen, 0));
+					size_t startLen = opabuffGetLen(b);
+					// try to serialize as utf-8 with \x escape sequences. if resulting string is too long then use base64
+					err = opabuffAppendStr(b, "\"~bin");
 					if (!err) {
-						base64Encode(src, slen, opabuffGetPos(b, pos), 0);
+						size_t prefixLen = opabuffGetLen(b) - startLen;
+						err = opasoEscapeBin(src, slen, b);
+						if (!err) {
+							size_t endLen = opabuffGetLen(b);
+							if (endLen - startLen > (slen * 2) + prefixLen) {
+								// reset buffer back to orig len and use base64 to encode bin
+								err = opabuffSetLen(b, startLen);
+							} else {
+								append64 = 0;
+							}
+						}
 					}
 				}
+				if (append64 && !err) {
+					err = opabuffAppendStr(b, "\"~base64");
+					if (!err) {
+						size_t pos = opabuffGetLen(b);
+						err = opabuffAppend(b, NULL, b64len);
+						if (!err) {
+							base64Encode(src, slen, opabuffGetPos(b, pos), 0);
+						}
+					}
+				}
+				if (!err) {
+					err = opabuffAppend1(b, '"');
+				}
 			}
-			if (!err) {
-				err = opabuffAppend1(b, '"');
-			}
+
 			return err;
 		}
 		case OPADEF_STR_LPVI: {
@@ -212,7 +257,7 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 						err = opabuffAppend1(b, '~');
 					}
 					if (!err) {
-						err = opasoEscapeString(src, slen, b);
+						err = opasoEscapeString(src, slen, 0, b);
 					}
 				}
 			}
