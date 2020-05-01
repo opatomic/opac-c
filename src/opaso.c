@@ -125,8 +125,12 @@ static int opasoEscapeString(const uint8_t* src, size_t len, int allowX, opabuff
 			case '\b': err = opabuffAppendStr(b, "\\b" ); break;
 			case '\f': err = opabuffAppendStr(b, "\\f" ); break;
 			default:
-				if (ch < 0x20) {
-					// must escape control chars
+				if (ch < 0x20 || ch == 0x7f) {
+					// escape control chars
+					// note: according to json specs, 0x7f can remain unescaped, however it's a
+					//       control character that may not be visible - so escape it here.
+					// TODO: also escape \u0080-\u009f? other unicode control characters?
+					//       https://stackoverflow.com/questions/3770117/what-is-the-range-of-unicode-printable-characters
 					err = opabuffAppendStr(b, allowX ? "\\x" : "\\u00");
 					if (!err) {
 						uint8_t tmp[2];
