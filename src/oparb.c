@@ -417,9 +417,9 @@ static void oparbAddUserToken(oparb* rb, const char* s, const char* end) {
 	}
 }
 
-static const char* oparbFindQuoteEnd(const char* str) {
+static const char* oparbFindQuoteEnd(const char* str, char ch) {
 	while (1) {
-		if (*str == '"') {
+		if (*str == ch) {
 			return str;
 		} else if (*str == '\\') {
 			++str;
@@ -459,8 +459,9 @@ static oparb oparbParseUserCommandWithId(const char* s, const uint8_t* id, size_
 			case 0:
 				goto Done;
 			case '"':
+			case '\'':
 				++s;
-				end = oparbFindQuoteEnd(s);
+				end = oparbFindQuoteEnd(s, s[-1]);
 				if (end == NULL) {
 					rb.errDesc = "string end quote not found";
 					rb.err = OPA_ERR_PARSE;
