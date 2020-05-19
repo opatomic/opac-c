@@ -258,7 +258,7 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 				if (!err && slen > 0) {
 					if (*src == '~' || *src == '^' || *src == '`') {
 						// first char needs to be escaped
-						err = opabuffAppend1(b, '~');
+						err = opabuffAppend1(b, '\\');
 					}
 					if (!err) {
 						err = opasoEscapeString(src, slen, 0, b);
