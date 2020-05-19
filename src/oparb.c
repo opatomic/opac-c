@@ -437,8 +437,7 @@ static const char* oparbFindTokenEnd(const char* str) {
 	while (1) {
 		int ch = *str;
 		// TODO: whitelist some more characters that can be unquoted and unescaped? ie ":/*?"
-		// note: slash character '/' cannot be included here because it is used for comments
-		// note: / is included to help with key separators and is also used by base64
+		// note: slash character '/' probably cannot be included here because it is used for comments
 		if (isalphanum(ch) || ch < 0 || ch == '_' || ch == '.' || ch == '-' || ch == '+') {
 			++str;
 		} else if (ch == '\\' && str[1] != 0) {
