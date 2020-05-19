@@ -213,19 +213,42 @@ static uint32_t hexVal(char ch) {
 	return 0xFFFFFFFF;
 }
 
+// TODO: use isalnum instead?
+static int isalphanum(int ch) {
+	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9');
+}
+
+static int isValidEscapeChar(int ch) {
+	if (isalphanum(ch)) {
+		switch (ch) {
+			case 'b':
+			case 'f':
+			case 'n':
+			case 'r':
+			case 't':
+			case 'u':
+			case 'x':
+				return 1;
+			default:
+				return 0;
+		}
+	} else if (ch <= 0x20) {
+		return ch == '\r' || ch == '\n' || ch == '\t' || ch == ' ';
+	} else {
+		return ch != 0x7f;
+	}
+}
+
 static int oparbStrUnescape(const char* s, const char* end, opabuff* b) {
 	int err = 0;
 	for (; !err && s < end; ++s) {
 		char ch = *s;
 		if (ch == '\\') {
 			++s;
-			if (s >= end) {
+			if (s >= end || !isValidEscapeChar(*s)) {
 				return OPA_ERR_PARSE;
 			}
 			switch (*s) {
-				case '"':  err = opabuffAppend1(b, '"' ); break;
-				case '\\': err = opabuffAppend1(b, '\\'); break;
-				case '/':  err = opabuffAppend1(b, '/' ); break;
 				case 'b':  err = opabuffAppend1(b, '\b'); break;
 				case 'f':  err = opabuffAppend1(b, '\f'); break;
 				case 'n':  err = opabuffAppend1(b, '\n'); break;
@@ -306,7 +329,8 @@ static int oparbStrUnescape(const char* s, const char* end, opabuff* b) {
 					break;
 				}
 				default:
-					return OPA_ERR_PARSE;
+					err = opabuffAppend1(b, *s);
+					break;
 			}
 		} else {
 			err = opabuffAppend1(b, ch);
@@ -411,26 +435,17 @@ static const char* oparbFindQuoteEnd(const char* str) {
 
 static const char* oparbFindTokenEnd(const char* str) {
 	while (1) {
-		switch (*str) {
-			case '\\':
-				if (str[1] != 0) {
-					str++;
-				}
-				break;
-			case 0:
-			case ',':
-			case '[':
-			case ']':
-			case '{':
-			case '}':
-			case '"':
-			case ' ':
-			case '\t':
-			case '\r':
-			case '\n':
-				return str;
+		int ch = *str;
+		// TODO: whitelist some more characters that can be unquoted and unescaped? ie ":/*?"
+		// note: slash character '/' cannot be included here because it is used for comments
+		// note: / is included to help with key separators and is also used by base64
+		if (isalphanum(ch) || ch < 0 || ch == '_' || ch == '.' || ch == '-' || ch == '+') {
+			++str;
+		} else if (ch == '\\' && str[1] != 0) {
+			str += 2;
+		} else {
+			return str;
 		}
-		++str;
 	}
 }
 
@@ -454,11 +469,6 @@ static oparb oparbParseUserCommandWithId(const char* s, const uint8_t* id, size_
 				oparbAddUserString(&rb, s, end);
 				s = end + 1;
 				break;
-			case '{':
-			case '}':
-				rb.errDesc = "object tokens '{' and '}' not supported";
-				rb.err = OPA_ERR_PARSE;
-				goto Done;
 			case '[':
 				oparbStartArray(&rb);
 				++depth;
@@ -483,6 +493,11 @@ static oparb oparbParseUserCommandWithId(const char* s, const uint8_t* id, size_
 				break;
 			default:
 				end = oparbFindTokenEnd(s);
+				if (end == s) {
+					rb.errDesc = "reserved/special/control characters must be inside quotes or escaped";
+					rb.err = OPA_ERR_PARSE;
+					goto Done;
+				}
 				oparbAddUserToken(&rb, s, end);
 				s = end;
 				break;
