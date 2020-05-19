@@ -470,6 +470,29 @@ static oparb oparbParseUserCommandWithId(const char* s, const uint8_t* id, size_
 				oparbAddUserString(&rb, s, end);
 				s = end + 1;
 				break;
+			case '/':
+				if (s[1] == '/') {
+					const char* pos = strchr(s + 2, '\n');
+					if (pos == NULL) {
+						goto Done;
+					} else {
+						s = pos + 1;
+					}
+				} else if (s[1] == '*') {
+					const char* pos = strstr(s + 2, "*/");
+					if (pos == NULL) {
+						rb.errDesc = "end of comment \"*/\" not found";
+						rb.err = OPA_ERR_PARSE;
+						goto Done;
+					} else {
+						s = pos + 2;
+					}
+				} else {
+					rb.errDesc = "the / character must be inside quotes, escaped, or used as comment";
+					rb.err = OPA_ERR_PARSE;
+					goto Done;
+				}
+				break;
 			case '[':
 				oparbStartArray(&rb);
 				++depth;
