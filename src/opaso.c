@@ -5,7 +5,6 @@
 
 #include <string.h>
 
-#include "base64.h"
 #include "opabigdec.h"
 #include "opacore.h"
 #include "opaso.h"
@@ -111,13 +110,14 @@ static int opasoWriteIndent(opabuff* b, const char* space, unsigned int depth) {
 	return err;
 }
 
-static int opasoEscapeString(const uint8_t* src, size_t len, int allowX, opabuff* b) {
+static int opasoEscapeString(const uint8_t* src, size_t len, int isBin, opabuff* b) {
 	int err = 0;
 	const uint8_t* end = src + len;
 	for (; src < end && !err; ++src) {
 		uint8_t ch = *src;
 		switch (ch) {
-			case '"':  err = opabuffAppendStr(b, "\\\""); break;
+			case '"':  err = opabuffAppendStr(b, isBin ? "\""  : "\\\""); break;
+			case '\'': err = opabuffAppendStr(b, isBin ? "\\'" : "'"   ); break;
 			case '\\': err = opabuffAppendStr(b, "\\\\"); break;
 			case '\t': err = opabuffAppendStr(b, "\\t" ); break;
 			case '\r': err = opabuffAppendStr(b, "\\r" ); break;
@@ -131,7 +131,7 @@ static int opasoEscapeString(const uint8_t* src, size_t len, int allowX, opabuff
 					//       control character that may not be visible - so escape it here.
 					// TODO: also escape \u0080-\u009f? other unicode control characters?
 					//       https://stackoverflow.com/questions/3770117/what-is-the-range-of-unicode-printable-characters
-					err = opabuffAppendStr(b, allowX ? "\\x" : "\\u00");
+					err = opabuffAppendStr(b, isBin ? "\\x" : "\\u00");
 					if (!err) {
 						uint8_t tmp[2];
 						tmp[0] = HEXCHARS[(ch & 0xF0) >> 4];
@@ -174,7 +174,7 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 		case OPADEF_FALSE:       return opabuffAppendStr(b, "false");
 		case OPADEF_TRUE:        return opabuffAppendStr(b, "true");
 		case OPADEF_SORTMAX:     return opabuffAppendStr(b, "SORTMAX");
-		case OPADEF_BIN_EMPTY:   return opabuffAppendStr(b, "\"~bin\"");
+		case OPADEF_BIN_EMPTY:   return opabuffAppendStr(b, "''");
 		case OPADEF_STR_EMPTY:   return opabuffAppendStr(b, "\"\"");
 		case OPADEF_ARRAY_EMPTY: return opabuffAppendStr(b, "[]");
 
@@ -210,44 +210,17 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 			return err;
 		}
 		case OPADEF_BIN_LPVI: {
-			uint64_t slen;
-			int err = opaviLoadWithErr(src + 1, &slen, &src);
+			int err = opabuffAppend1(b, '\'');
 			if (!err) {
-				size_t b64len = base64EncodeLen(slen, 0);
-				int append64 = 1;
+				uint64_t slen;
+				err = opaviLoadWithErr(src + 1, &slen, &src);
 				if (!err) {
-					size_t startLen = opabuffGetLen(b);
-					// try to serialize as utf-8 with \x escape sequences. if resulting string is too long then use base64
-					err = opabuffAppendStr(b, "\"~bin");
-					if (!err) {
-						size_t prefixLen = opabuffGetLen(b) - startLen;
-						err = opasoEscapeBin(src, slen, b);
-						if (!err) {
-							size_t endLen = opabuffGetLen(b);
-							if (endLen - startLen > (slen * 2) + prefixLen) {
-								// reset buffer back to orig len and use base64 to encode bin
-								err = opabuffSetLen(b, startLen);
-							} else {
-								append64 = 0;
-							}
-						}
-					}
-				}
-				if (append64 && !err) {
-					err = opabuffAppendStr(b, "\"~base64");
-					if (!err) {
-						size_t pos = opabuffGetLen(b);
-						err = opabuffAppend(b, NULL, b64len);
-						if (!err) {
-							base64Encode(src, slen, opabuffGetPos(b, pos), 0);
-						}
-					}
-				}
-				if (!err) {
-					err = opabuffAppend1(b, '"');
+					err = opasoEscapeBin(src, slen, b);
 				}
 			}
-
+			if (!err) {
+				err = opabuffAppend1(b, '\'');
+			}
 			return err;
 		}
 		case OPADEF_STR_LPVI: {
@@ -255,14 +228,8 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 			if (!err) {
 				uint64_t slen;
 				err = opaviLoadWithErr(src + 1, &slen, &src);
-				if (!err && slen > 0) {
-					if (*src == '~' || *src == '^' || *src == '`') {
-						// first char needs to be escaped
-						err = opabuffAppend1(b, '\\');
-					}
-					if (!err) {
-						err = opasoEscapeString(src, slen, 0, b);
-					}
+				if (!err) {
+					err = opasoEscapeString(src, slen, 0, b);
 				}
 			}
 			if (!err) {
