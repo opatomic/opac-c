@@ -228,7 +228,8 @@ static int isValidEscapeChar(int ch) {
 				return 0;
 		}
 	} else if (ch <= 0x20) {
-		return ch == '\r' || ch == '\n' || ch == '\t' || ch == ' ';
+		// can escape space but not other control chars
+		return ch == ' ';
 	} else {
 		return ch != 0x7f;
 	}
