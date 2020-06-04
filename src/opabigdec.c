@@ -736,6 +736,7 @@ int opabigdecToString(const opabigdec* a, char* str, size_t space, size_t* pWrit
 		if (slen > 0 && str[0] == '-') {
 			++str;
 			--slen;
+			--space;
 		}
 		OASSERT(slen > 0 && space > slen);
 
