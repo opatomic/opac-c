@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 
+int winIsVerGTE(DWORD major, DWORD minor);
 int winUtf8ToWide(const char* utf8Str, wchar_t** pWstr);
 int winWideToUtf8(const wchar_t* wstr, char** pUtf8Str);
 FILE* winfopen(const char* filename, const char* opentype);
