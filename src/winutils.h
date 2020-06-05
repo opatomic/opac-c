@@ -9,8 +9,7 @@
 #ifdef _WIN32
 
 #include <stdio.h>
-
-typedef unsigned long DWORD;
+#include <windows.h>
 
 int winIsVerGTE(DWORD major, DWORD minor);
 int winUtf8ToWide(const char* utf8Str, wchar_t** pWstr);
