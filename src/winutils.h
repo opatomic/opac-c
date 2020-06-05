@@ -10,6 +10,8 @@
 
 #include <stdio.h>
 
+typedef unsigned long DWORD;
+
 int winIsVerGTE(DWORD major, DWORD minor);
 int winUtf8ToWide(const char* utf8Str, wchar_t** pWstr);
 int winWideToUtf8(const wchar_t* wstr, char** pUtf8Str);
