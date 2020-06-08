@@ -5,10 +5,13 @@
 
 #ifdef _WIN32
 
+// note: when including ntstatus.h, must define WIN32_NO_STATUS before including windows.h
+//  see http://www.mschaef.com/windows_h_is_wierd
+#define WIN32_NO_STATUS
 #include <windows.h>
-#include <ntdef.h>
+#undef WIN32_NO_STATUS
+#include <winternl.h>
 #include <ntstatus.h>
-#include <versionhelpers.h>
 
 #include "opacore.h"
 #include "winutils.h"
@@ -20,17 +23,26 @@ typedef struct {
 	DWORD platform;
 } winRealVerInfo;
 
-typedef NTSTATUS (*RtlGetVersionFunc)(PRTL_OSVERSIONINFOW lpVersionInformation);
+typedef NTSTATUS (*RtlGetVersionFunc)(RTL_OSVERSIONINFOW* lpVersionInformation);
 
 static void winGetRealVersionInternal(winRealVerInfo* info) {
 	memset(info, 0, sizeof(winRealVerInfo));
-	if (!IsWindowsXPOrGreater()) {
+	OSVERSIONINFO gvi = {0};
+	gvi.dwOSVersionInfoSize = sizeof(gvi);
+	if (!GetVersionEx(&gvi)) {
+		return;
+	}
+	info->major = gvi.dwMajorVersion;
+	info->minor = gvi.dwMinorVersion;
+	info->build = gvi.dwBuildNumber;
+	info->platform = gvi.dwPlatformId;
+	if (!(gvi.dwMajorVersion > 5 || (gvi.dwMajorVersion == 5 && gvi.dwMinorVersion >= 1))) {
 		// note: win2k successfully loads and calls RtlGetVersion; but crashes sometime afterward
-		// TODO: add support for getting win2k version and earlier
+		//   therefore, just return results from GetVersionEx() if it says win2k or earlier
 		return;
 	}
 	// note: GetVersionEx() is not used because it may use the embedded manifest rather than
-	//   determining the true version. So RtlGetVersion() is used instead.
+	//   determining the true version. If possible, RtlGetVersion() is used instead.
 	// https://stackoverflow.com/questions/36543301/detecting-windows-10-version/36543774#36543774
 	HMODULE hlib = LoadLibrary("ntdll.dll");
 	if (hlib != NULL) {
