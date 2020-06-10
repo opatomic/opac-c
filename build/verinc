@@ -1,9 +1,8 @@
 #!/bin/bash
 
-function handleErr {
+handleErr() {
 	echo "$(basename "$BASH_SOURCE"): Error on line $1" >&2; exit 1
 }
-
 trap 'handleErr $LINENO' ERR
 
 git --version  > /dev/null 2>&1 || (echo "git must be installed" >&2 && exit 1)
