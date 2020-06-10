@@ -54,7 +54,7 @@ uint64_t opaTimeMillis(void) {
 	// https://stackoverflow.com/questions/1695288/getting-the-current-time-in-milliseconds-from-the-system-clock-in-windows
 	FILETIME t;
 	GetSystemTimeAsFileTime(&t);
-	return (((((uint64_t) t.dwHighDateTime) << 32LL) | ((uint64_t)t.dwLowDateTime)) / 10000LL) - 116444736000000000LL;
+	return (((((uint64_t) t.dwHighDateTime) << 32) | ((uint64_t)t.dwLowDateTime)) - 116444736000000000ULL) / 10000ULL;
 }
 
 void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWORD err) {
