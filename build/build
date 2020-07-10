@@ -9,7 +9,7 @@
 #   CFLAGS   extra args to pass to compiler during compile stage
 #   CC       program/command to compile (default cc)
 #   AR       program/command to archive (default ar)
-#   ARFLAGS  flags to pass to AR program (default rcs)
+#   ARFLAGS  flags to pass to AR program (default -rcs)
 
 # to build for win64 on ubuntu:
 #   sudo apt-get install mingw-w64
