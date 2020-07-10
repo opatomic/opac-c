@@ -122,12 +122,15 @@ void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWOR
 #define OPADEF_ARRAY_END    ']'
 
 
-#define OPA_ERR_INTERNAL -1
-#define OPA_ERR_NOMEM    -2
-#define OPA_ERR_INVSTATE -3
-#define OPA_ERR_INVARG   -4
-#define OPA_ERR_OVERFLOW -5
-#define OPA_ERR_PARSE    -6
+#define OPA_ERR_INTERNAL    -1
+#define OPA_ERR_NOMEM       -2
+#define OPA_ERR_INVSTATE    -3
+#define OPA_ERR_INVARG      -4
+#define OPA_ERR_OVERFLOW    -5
+#define OPA_ERR_PARSE       -6
+#define OPA_ERR_WOULDBLOCK  -7
+#define OPA_ERR_EOF         -8
+#define OPA_ERR_UNSUPPORTED -9
 
 
 #ifdef OPACOVTEST
