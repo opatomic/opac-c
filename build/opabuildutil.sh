@@ -70,7 +70,7 @@ buildcfile() {
 	if [ "$3" != "MP" ]; then
 		echo "building $FNAME.c"
 	fi
-	$CC -c $GCCOPTS $GCCWARN $DEFS $INCS $CFLAGS -o "$2/$FNAME.o" "$FNAME.c" || exit 1
+	$CC -c $GCCWARN $DEFS $INCS $CFLAGS -o "$2/$FNAME.o" "$FNAME.c" || exit 1
 	if [ "$3" = "MP" ]; then
 		echo "built $FNAME.c"
 	fi

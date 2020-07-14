@@ -28,8 +28,8 @@
 TMPDIR="$PWD/tmp"
 OUTDIR="$PWD/out"
 
-GCCOPTS="-std=c99 -O2 -g"
-#GCCOPTS="$GCCOPTS -fno-strict-aliasing"
+CFLAGS="-std=c99 -O2 -g $CFLAGS"
+#CFLAGS="$(testgccopt -fno-strict-aliasing) $CFLAGS"
 
 INCS="-I. -I../deps/libtommath"
 DEFS="-DOPAC_VERSION=\"$(./verget)\""
