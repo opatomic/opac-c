@@ -23,7 +23,7 @@ typedef struct {
 	DWORD platform;
 } winRealVerInfo;
 
-typedef NTSTATUS (*RtlGetVersionFunc)(RTL_OSVERSIONINFOW* lpVersionInformation);
+typedef NTSTATUS (__stdcall*RtlGetVersionFunc)(RTL_OSVERSIONINFOW* lpVersionInformation);
 
 static void winGetRealVersionInternal(winRealVerInfo* info) {
 	memset(info, 0, sizeof(winRealVerInfo));
@@ -36,11 +36,6 @@ static void winGetRealVersionInternal(winRealVerInfo* info) {
 	info->minor = gvi.dwMinorVersion;
 	info->build = gvi.dwBuildNumber;
 	info->platform = gvi.dwPlatformId;
-	if (!(gvi.dwMajorVersion > 5 || (gvi.dwMajorVersion == 5 && gvi.dwMinorVersion >= 1))) {
-		// note: win2k successfully loads and calls RtlGetVersion; but crashes sometime afterward
-		//   therefore, just return results from GetVersionEx() if it says win2k or earlier
-		return;
-	}
 	// note: GetVersionEx() is not used because it may use the embedded manifest rather than
 	//   determining the true version. If possible, RtlGetVersion() is used instead.
 	// https://stackoverflow.com/questions/36543301/detecting-windows-10-version/36543774#36543774
