@@ -93,11 +93,7 @@ static void opabigdecNegate(opabigdec* a) {
 }
 
 int opabigdecSet64(opabigdec* a, uint64_t val, int isNeg, int32_t exp) {
-#ifdef OPA_USEGMP
 	mp_set_u64(&a->significand, val);
-#else
-	mp_set_u64(&a->significand, val);
-#endif
 	if (isNeg) {
 		opabigdecNegate(a);
 	}
