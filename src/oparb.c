@@ -137,12 +137,12 @@ void oparbAddSO(oparb* rb, const uint8_t* so) {
 	oparbAppend(rb, so, opasolen(so));
 }
 
-void oparbAddNumStr(oparb* rb, const char* s) {
+void oparbAddNumStr(oparb* rb, const char* s, const char* end) {
 	if (!rb->err) {
 		opabigdec bd;
 		rb->err = opabigdecInit(&bd);
 		if (!rb->err) {
-			rb->err = opabigdecFromStr(&bd, s, 10);
+			rb->err = opabigdecFromStr(&bd, s, end, 10);
 			if (!rb->err) {
 				oparbAddBigDec(rb, &bd);
 			}
@@ -379,7 +379,7 @@ static void oparbAddUserToken(oparb* rb, const char* s, const char* end) {
 	if (replacement != 0) {
 		oparbAppend1(rb, replacement);
 	} else if (opaIsNumStr(s, end)) {
-		oparbAddNumStr(rb, s);
+		oparbAddNumStr(rb, s, end);
 	} else {
 		oparbAddUserStrOrBin(rb, s, end, OPADEF_STR_LPVI);
 	}

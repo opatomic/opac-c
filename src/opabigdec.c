@@ -535,7 +535,7 @@ size_t opabigdecStoreSO(const opabigdec* val, uint8_t* buff, size_t buffLen) {
 	}
 }
 
-int opabigdecFromStr(opabigdec* v, const char* str, int radix) {
+int opabigdecFromStr(opabigdec* v, const char* str, const char* end, int radix) {
 	if (radix < 2 || radix > 10) {
 		// only support up to base 10 for now. cannot mix hex chars with e/E exponent separator
 		return OPA_ERR_INVARG;
@@ -548,7 +548,7 @@ int opabigdecFromStr(opabigdec* v, const char* str, int radix) {
 
 	mp_zero(&v->significand);
 
-	if (*str == '-') {
+	if (str < end && *str == '-') {
 		++str;
 		neg = 1;
 	} else {
@@ -556,7 +556,7 @@ int opabigdecFromStr(opabigdec* v, const char* str, int radix) {
 	}
 
 	while (1) {
-		for (;*str >= '0' && *str <= '9'; ++str) {
+		for (; str < end && *str >= '0' && *str <= '9'; ++str) {
 			if ((tomerr = mp_mul_d(&v->significand, radix, &v->significand)) != MP_OKAY) {
 				return opabigdecConvertErr(tomerr);
 			}
@@ -565,7 +565,7 @@ int opabigdecFromStr(opabigdec* v, const char* str, int radix) {
 			}
 		}
 		// TODO: handle other locale characters? might use , rather than . ??
-		if (*str == '.' && decPos == NULL) {
+		if (str < end && *str == '.' && decPos == NULL) {
 			decPos = ++str;
 			continue;
 		}
@@ -576,17 +576,19 @@ int opabigdecFromStr(opabigdec* v, const char* str, int radix) {
 		decLen = str - decPos;
 	}
 
-	if (*str == 'e' || *str == 'E') {
+	if (str < end && (*str == 'e' || *str == 'E')) {
 		++str;
 		int negExp = 0;
-		if (*str == '-') {
-			negExp = 1;
-			++str;
-		} else if (*str == '+') {
-			++str;
+		if (str < end) {
+			if (*str == '-') {
+				negExp = 1;
+				++str;
+			} else if (*str == '+') {
+				++str;
+			}
 		}
 		uint64_t currVal = 0;
-		for (; *str >= '0' && *str <= '9'; ++str) {
+		for (; str < end && *str >= '0' && *str <= '9'; ++str) {
 			currVal = (currVal * radix) + (*str - '0');
 			if ((negExp && currVal > (uint64_t)INT32_MAX + 1) || (!negExp && currVal > INT32_MAX)) {
 				return OPA_ERR_OVERFLOW;

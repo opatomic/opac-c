@@ -21,7 +21,7 @@ void oparbInit(oparb* rb, const uint8_t* asyncId, size_t idLen);
 void oparbAddI64(oparb* rb, int64_t arg);
 void oparbAddU64(oparb* rb, uint64_t arg);
 void oparbAddSO(oparb* rb, const uint8_t* so);
-void oparbAddNumStr(oparb* rb, const char* s);
+void oparbAddNumStr(oparb* rb, const char* s, const char* end);
 void oparbAddBin(oparb* rb, size_t len, const void* arg);
 void oparbAddStr(oparb* rb, size_t len, const void* arg);
 void oparbStartArray(oparb* rb);
