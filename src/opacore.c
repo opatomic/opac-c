@@ -354,6 +354,7 @@ const uint8_t* opaFindInvalidUtf8(const uint8_t* s, size_t len) {
 	// TODO: look into other techniques to speed this up
 	//  https://github.com/lemire/fastvalidate-utf-8
 	//  https://github.com/cyb70289/utf8/
+	//  https://lemire.me/blog/2020/10/20/ridiculously-fast-unicode-utf-8-validation/
 
 	/*
 	#ifdef __SSE2__

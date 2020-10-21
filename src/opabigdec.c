@@ -668,6 +668,7 @@ int opabigdecFromStr(opabigdec* v, const char* str, const char* end, int radix) 
 
 	if (decLen != 0) {
 		// TODO: check for overflow
+		//   https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
 		int64_t newVal = v->exponent - decLen;
 		if (newVal < INT32_MIN || newVal > INT32_MAX) {
 			return OPA_ERR_OVERFLOW;
