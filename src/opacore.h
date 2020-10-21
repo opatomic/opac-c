@@ -97,7 +97,8 @@ void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWOR
 #define OPADEF_BIN_EMPTY    'A'
 #define OPADEF_STR_EMPTY    'R'
 #define OPADEF_ARRAY_EMPTY  'M'
-// TODO: add +infinity -infinity -0 NaN ?
+#define OPADEF_NEGINF       'P'
+#define OPADEF_POSINF       'Q'
 #define OPADEF_ZERO         'O'
 #define OPADEF_POSVARINT    'D'
 #define OPADEF_NEGVARINT    'E'
@@ -181,6 +182,7 @@ uint8_t opaviStoreLen(uint64_t val);
 
 
 int opaIsNumStr(const char* s, const char* end);
+int opaIsInfStr(const char* str, size_t len);
 const uint8_t* opaFindInvalidUtf8(const uint8_t* s, size_t len);
 
 

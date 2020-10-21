@@ -15,6 +15,7 @@
 typedef struct {
 	mp_int significand;
 	int32_t exponent;
+	char inf;
 } opabigdec;
 
 
@@ -25,6 +26,7 @@ void opabigdecClear(opabigdec* a);
 
 int opabigdecIsNeg(const opabigdec* a);
 int opabigdecIsZero(const opabigdec* a);
+int opabigdecIsFinite(const opabigdec* a);
 int opabigdecSet64(opabigdec* a, uint64_t val, int isNeg, int32_t exp);
 int opabigdecGetMag64(const opabigdec* a, uint64_t* pVal);
 

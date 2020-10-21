@@ -371,6 +371,10 @@ static uint8_t oparbConvertToken(const void* s, size_t slen) {
 	} else if (oparbIsToken(s, slen, "SORTMAX")) {
 		return OPADEF_SORTMAX;
 	}
+	int infval = opaIsInfStr(s, slen);
+	if (infval) {
+		return infval < 0 ? OPADEF_NEGINF : OPADEF_POSINF;
+	}
 	return 0;
 }
 

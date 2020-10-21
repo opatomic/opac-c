@@ -196,6 +196,8 @@ static int opappFindEndInternal(opapp* rc, const uint8_t* buff, size_t len, cons
 			case OPADEF_NULL:
 			case OPADEF_FALSE:
 			case OPADEF_TRUE:
+			case OPADEF_NEGINF:
+			case OPADEF_POSINF:
 			case OPADEF_ZERO:
 			case OPADEF_BIN_EMPTY:
 			case OPADEF_STR_EMPTY:
