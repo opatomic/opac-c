@@ -26,7 +26,9 @@ static void oparbAppend(oparb* rb, const void* src, size_t srcLen) {
 void oparbInit(oparb* rb, const uint8_t* asyncId, size_t idLen) {
 	memset(rb, 0, sizeof(oparb));
 	oparbAppend1(rb, OPADEF_ARRAY_START);
-	oparbAppend(rb, asyncId, idLen);
+	if (asyncId != NULL && idLen > 0) {
+		oparbAppend(rb, asyncId, idLen);
+	}
 }
 
 static void oparbAppendStrOrBin(oparb* rb, size_t len, const void* arg, uint8_t type) {
