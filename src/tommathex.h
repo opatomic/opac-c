@@ -30,7 +30,7 @@
 #define mp_iszero(a) (mpz_sgn(a) == 0 ? MP_YES : MP_NO)
 #define mp_isneg(a) (mpz_sgn(a) < 0 ? MP_YES : MP_NO)
 
-#define mp_zero(a) mp_set_u64(a, 0)
+#define mp_zero_werr(a) mp_set_u64_werr(a, 0)
 
 typedef int mp_err;
 
@@ -39,7 +39,7 @@ mp_err mp_init_copy(mp_int* a, const mp_int* b);
 mp_err mp_copy(const mp_int* a, mp_int* b);
 
 uint64_t mp_get_mag_u64(const mp_int* a);
-void mp_set_u64(mp_int* a, uint64_t b);
+mp_err mp_set_u64_werr(mp_int* a, uint64_t b);
 
 mp_err mp_abs(const mp_int* a, mp_int* b);
 
@@ -57,6 +57,8 @@ mp_err mp_to_radix(const mp_int* a, char* str, size_t maxlen, size_t* written, i
 
 #else
 #include "tommath.h"
+mp_err mp_zero_werr(mp_int* a);
+mp_err mp_set_u64_werr(mp_int* a, uint64_t b);
 #endif
 
 mp_err mp_to_radix10(const mp_int *a, char *str, size_t maxlen, size_t *written);

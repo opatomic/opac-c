@@ -51,7 +51,7 @@ uint64_t mp_get_mag_u64(const mp_int* a) {
 	return (((unsigned long long)msb) << 32) | lsb;
 }
 
-void mp_set_u64(mp_int* a, uint64_t b) {
+mp_err mp_set_u64_werr(mp_int* a, uint64_t b) {
 	SASSERT(sizeof(unsigned int) == 4);
 	if (b <= UINT_MAX) {
 		mpz_set_ui(a, (unsigned int)(b));
@@ -60,6 +60,7 @@ void mp_set_u64(mp_int* a, uint64_t b) {
 		mpz_mul_2exp(a, a, 32);
 		mpz_add_ui(a, a, (unsigned int)b);
 	}
+	return MP_OKAY;
 }
 
 mp_err mp_abs(const mp_int* a, mp_int* b) {
@@ -226,6 +227,16 @@ mp_err mp_to_radix(const mp_int *a, char *str, size_t maxlen, size_t *written, i
 
 #define mpz_size(op) (op)->used
 #define mpz_getlimbn(op, i) (op)->dp[i]
+
+mp_err mp_zero_werr(mp_int* a) {
+	mp_zero(a);
+	return MP_OKAY;
+}
+
+mp_err mp_set_u64_werr(mp_int* a, uint64_t b) {
+	mp_set_u64(a, b);
+	return MP_OKAY;
+}
 
 #endif
 
