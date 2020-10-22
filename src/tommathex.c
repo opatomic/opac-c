@@ -18,6 +18,9 @@ static void revdigs(char* s, size_t len) {
 
 #ifdef OPA_USEGMP
 
+#define mp_used mpz_size
+#define mp_getlimb mpz_getlimbn
+
 mp_err mp_init(mp_int* a) {
 	mpz_init(a);
 	return MP_OKAY;
@@ -225,8 +228,8 @@ mp_err mp_to_radix(const mp_int *a, char *str, size_t maxlen, size_t *written, i
 
 #else
 
-#define mpz_size(op) (op)->used
-#define mpz_getlimbn(op, i) (op)->dp[i]
+#define mp_used(op) (op)->used
+#define mp_getlimb(op, i) (op)->dp[i]
 
 mp_err mp_zero_werr(mp_int* a) {
 	mp_zero(a);
@@ -283,7 +286,7 @@ mp_err mp_to_radix10(const mp_int *a, char *str, size_t maxlen, size_t *written)
 		*str++ = '-';
 	}
 
-	if (mpz_size(a) > 1 && str < stop) {
+	if (mp_used(a) > 1 && str < stop) {
 		if ((res = mp_init_copy(&t, a)) != MP_OKAY) {
 			return res;
 		}
@@ -300,11 +303,11 @@ mp_err mp_to_radix10(const mp_int *a, char *str, size_t maxlen, size_t *written)
 			if (str < stop) {
 				*str++ = chars1[r];
 			}
-		} while (mpz_size(&t) > 1 && str < stop);
-		v = mpz_getlimbn(&t, 0);
+		} while (mp_used(&t) > 1 && str < stop);
+		v = mp_getlimb(&t, 0);
 		mp_clear(&t);
 	} else {
-		v = mpz_getlimbn(a, 0);
+		v = mp_getlimb(a, 0);
 	}
 
 	while (v >= 100 && str < stop) {
