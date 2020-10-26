@@ -203,7 +203,7 @@ size_t opaviGetStoredLen(const uint8_t* buff) {
 }
 */
 
-void opazeroAndFree(void* ptr, size_t len) {
+void opaZeroAndFree(void* ptr, size_t len) {
 	if (ptr != NULL) {
 		opaszmem(ptr, len);
 		OPAFREE(ptr);

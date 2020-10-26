@@ -168,7 +168,7 @@ void opacoreLogStrerr(const char* func, const char* filename, int line, int errn
 void opaszmem(void* ptr, size_t len);
 #endif
 
-void opazeroAndFree(void* ptr, size_t len);
+void opaZeroAndFree(void* ptr, size_t len);
 uint64_t opaTimeMillis(void);
 
 
