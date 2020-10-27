@@ -22,7 +22,7 @@ typedef struct {
 	unsigned int maxArrayDepth;
 	char checkUtf8;
 	size_t maxBigIntLen;
-	uint64_t maxVarDecExp;
+	uint64_t maxDecExp;
 	//size_t maxBinLen;
 	//size_t maxStrLen;
 } opappOptions;
