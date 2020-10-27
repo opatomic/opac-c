@@ -521,6 +521,10 @@ void opacClose(opac* c) {
 
 	opacidmapIterate(&c->asyncReqs, c, opacCloseAsyncCB);
 	opacidmapClose(&c->asyncReqs);
+#ifndef OPA_NOTHREADS
+	opaqueueClose(&c->mainReqs);
+	opaqueueClose(&c->reqsToSend);
+#endif
 
 	c->currSendReq = NULL;
 

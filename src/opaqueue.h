@@ -27,6 +27,7 @@ typedef struct {
 void opaqueueInit(opaqueue* q);
 #ifndef OPA_NOTHREADS
 void opaqueueInitMT(opaqueue* q);
+void opaqueueClose(opaqueue* q);
 #endif
 
 // returns 0 if queue was not empty; non-zero if queue was empty before modified

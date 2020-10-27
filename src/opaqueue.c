@@ -39,6 +39,12 @@ void opaqueueInitMT(opaqueue* q) {
 	opamutexInit(&q->m);
 	q->sync = 1;
 }
+
+void opaqueueClose(opaqueue* q) {
+	if (q->sync) {
+		opamutexDestroy(&q->m);
+	}
+}
 #endif
 
 int opaqueuePush(opaqueue* q, opaqueueItem* item) {
