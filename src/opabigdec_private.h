@@ -10,6 +10,5 @@
 
 // the following are internal functions (do not use)
 int opabigdecExtend(opabigdec* v, uint32_t amount);
-int opabigdecConvertErr(int tomerr);
 
 #endif

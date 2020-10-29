@@ -9,11 +9,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "tommathex.h"
+#include "opabigint.h"
 
 
 typedef struct {
-	mp_int significand;
+	opabigint significand;
 	int32_t exponent;
 	char inf;
 } opabigdec;

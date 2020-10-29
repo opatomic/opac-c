@@ -1,6 +1,6 @@
 Opatomic client library for C. Should build for all major OS's. Designed for simplicity.
 
-Only 1 external library dependency: bigint library (libtommath or GMP).
+Only 1 external library dependency: bigint library (libtommath, mbedtls, or GMP).
 
 Builds with bash and GCC:
 
@@ -23,7 +23,7 @@ following files have a different license:
  - src/rbt*
  - deps/*
 
-The licenses are all similar as long as you do not define OPA_USEGMP. If you define this
+The licenses are all similar as long as you do not define OPABIGINT_LIB=GMP. If you define this
 then you will link with GMP which has a more restrictive license.
 
 ## API
@@ -37,8 +37,8 @@ refer to __src/opac.h__ for the bulk of the client functions
 ### Build Definitions
 
     OPA_NOTHREADS - define if threading support should be disabled
-    OPA_USEGMP - define to use GMP for bigints rather than libtommath. make sure to install
-                 required dependency: on Ubuntu, run `sudo apt-get install libgmp3-dev`
+    OPABIGINT_LIB=GMP - define to use GMP for bigints rather than libtommath. make sure to install
+                        required dependency: on Ubuntu, run `sudo apt-get install libgmp3-dev`
 
 ### Memory allocations
 This library tries to avoid memory allocations as much as possible. However,

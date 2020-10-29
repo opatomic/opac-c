@@ -19,7 +19,7 @@
 #   CFLAGS="-march=i386 -m32" ./build
 # to use GMP rather than libtommath:
 #   sudo apt-get install libgmp3-dev
-#   CFLAGS="-DOPA_USEGMP" ./build
+#   OPABIGINT_LIB=GMP ./build
 # to disable threading support:
 #   CFLAGS="-DOPA_NOTHREADS" ./build
 
@@ -30,6 +30,21 @@ OUTDIR="$PWD/out"
 
 CFLAGS="-std=c99 -O2 -g $CFLAGS"
 #CFLAGS="$(testgccopt -fno-strict-aliasing) $CFLAGS"
+OPABIGINT_LIB="${OPABIGINT_LIB:-LTM}"
+
+if [ "$OPABIGINT_LIB" = "mbedtls" ]; then
+	CFLAGS="-DOPABIGINT_USE_MBED $CFLAGS"
+elif [ "$OPABIGINT_LIB" = "LTM" ]; then
+	CFLAGS="-DOPABIGINT_USE_LTM $CFLAGS"
+elif [ "$OPABIGINT_LIB" = "GMP" ]; then
+	CFLAGS="-DOPABIGINT_USE_GMP $CFLAGS"
+elif [ "$OPABIGINT_LIB" = "openssl" ]; then
+	CFLAGS="-DOPABIGINT_USE_OPENSSL $CFLAGS"
+else
+	echo "unknown bigint lib \$OPABIGINT_LIB=$OPABIGINT_LIB"
+	exit 1
+fi
+
 
 INCS="-I. -I../deps/libtommath"
 DEFS="-DOPAC_VERSION=\"$(./verget)\""
