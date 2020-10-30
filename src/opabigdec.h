@@ -19,9 +19,9 @@ typedef struct {
 } opabigdec;
 
 
-int opabigdecInit(opabigdec* a);
+void opabigdecInit(opabigdec* a);
 int opabigdecInitCopy(const opabigdec* src, opabigdec* dst);
-int opabigdecCopy(const opabigdec* src, opabigdec* dst);
+int opabigdecCopy(opabigdec* dst, const opabigdec* src);
 void opabigdecClear(opabigdec* a);
 
 int opabigdecIsNeg(const opabigdec* a);
@@ -30,9 +30,9 @@ int opabigdecIsFinite(const opabigdec* a);
 int opabigdecSet64(opabigdec* a, uint64_t val, int isNeg, int32_t exp);
 int opabigdecGetMag64(const opabigdec* a, uint64_t* pVal);
 
-int opabigdecAdd(const opabigdec* a, const opabigdec* b, opabigdec* result);
-int opabigdecSub(const opabigdec* a, const opabigdec* b, opabigdec* result);
-int opabigdecMul(const opabigdec* a, const opabigdec* b, opabigdec* result);
+int opabigdecAdd(opabigdec* result, const opabigdec* a, const opabigdec* b);
+int opabigdecSub(opabigdec* result, const opabigdec* a, const opabigdec* b);
+int opabigdecMul(opabigdec* result, const opabigdec* a, const opabigdec* b);
 
 int opabigdecLoadSO(opabigdec* bd, const uint8_t* so);
 size_t opabigdecStoreSO(const opabigdec* val, uint8_t* buff, size_t buffLen);

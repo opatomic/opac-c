@@ -24,12 +24,11 @@
 #define OPABIGDEC_POSINF 1
 
 
-int opabigdecInit(opabigdec* a) {
+void opabigdecInit(opabigdec* a) {
 	memset(a, 0, sizeof(opabigdec));
 	opabigintInit(&a->significand);
 	a->exponent = 0;
 	a->inf = 0;
-	return 0;
 }
 
 int opabigdecInitCopy(const opabigdec* src, opabigdec* dst) {
@@ -42,7 +41,7 @@ int opabigdecInitCopy(const opabigdec* src, opabigdec* dst) {
 	return err;
 }
 
-int opabigdecCopy(const opabigdec* src, opabigdec* dst) {
+int opabigdecCopy(opabigdec* dst, const opabigdec* src) {
 	if (src == dst) {
 		return 0;
 	}
@@ -79,7 +78,7 @@ int opabigdecIsFinite(const opabigdec* a) {
 }
 
 static int opabigdecNegate(opabigdec* dst, const opabigdec* src) {
-	int err = opabigdecCopy(src, dst);
+	int err = opabigdecCopy(dst, src);
 	if (!err) {
 		if (dst->inf) {
 			dst->inf = dst->inf == OPABIGDEC_NEGINF ? OPABIGDEC_POSINF : OPABIGDEC_NEGINF;
@@ -188,7 +187,7 @@ static int opabigdecSetInf(opabigdec* result, char infval) {
 	return err;
 }
 
-static int opabigdecAddInternal(const opabigdec* a, const opabigdec* b, opabigdec* result) {
+static int opabigdecAddInternal(opabigdec* result, const opabigdec* a, const opabigdec* b) {
 	OASSERT(a->exponent == b->exponent);
 	int err = opabigintAdd(&result->significand, &a->significand, &b->significand);
 	if (!err) {
@@ -197,44 +196,42 @@ static int opabigdecAddInternal(const opabigdec* a, const opabigdec* b, opabigde
 	return err;
 }
 
-int opabigdecAdd(const opabigdec* a, const opabigdec* b, opabigdec* result) {
+int opabigdecAdd(opabigdec* result, const opabigdec* a, const opabigdec* b) {
 	if (a->inf || b->inf) {
 		if (a->inf && b->inf && a->inf != b->inf) {
 			return OPA_ERR_OVERFLOW;
 		}
 		return opabigdecSetInf(result, a->inf ? a->inf : b->inf);
 	} else if (opabigdecIsZero(a)) {
-		return opabigdecCopy(b, result);
+		return opabigdecCopy(result, b);
 	} else if (opabigdecIsZero(b)) {
-		return opabigdecCopy(a, result);
+		return opabigdecCopy(result, a);
 	} else if (a->exponent == b->exponent) {
-		return opabigdecAddInternal(a, b, result);
+		return opabigdecAddInternal(result, a, b);
 	} else if (a->exponent > b->exponent) {
-		return opabigdecAdd(b, a, result);
+		return opabigdecAdd(result, b, a);
 	} else if (a == result || b == result) {
 		opabigdec tmp;
-		int err = opabigdecInit(&tmp);
+		opabigdecInit(&tmp);
+		int err = opabigdecAdd(&tmp, a, b);
 		if (!err) {
-			err = opabigdecAdd(a, b, &tmp);
-			if (!err) {
-				err = opabigdecCopy(&tmp, result);
-			}
-			opabigdecClear(&tmp);
+			err = opabigdecCopy(result, &tmp);
 		}
+		opabigdecClear(&tmp);
 		return err;
 	} else {
-		int err = opabigdecCopy(b, result);
+		int err = opabigdecCopy(result, b);
 		if (!err) {
 			err = opabigdecExtend(result, b->exponent - a->exponent);
 		}
 		if (!err) {
-			err = opabigdecAddInternal(a, result, result);
+			err = opabigdecAddInternal(result, a, result);
 		}
 		return err;
 	}
 }
 
-static int opabigdecSubInternal(const opabigdec* a, const opabigdec* b, opabigdec* result) {
+static int opabigdecSubInternal(opabigdec* result, const opabigdec* a, const opabigdec* b) {
 	OASSERT(a->exponent == b->exponent);
 	int err = opabigintSub(&result->significand, &a->significand, &b->significand);
 	if (!err) {
@@ -243,47 +240,45 @@ static int opabigdecSubInternal(const opabigdec* a, const opabigdec* b, opabigde
 	return err;
 }
 
-int opabigdecSub(const opabigdec* a, const opabigdec* b, opabigdec* result) {
+int opabigdecSub(opabigdec* result, const opabigdec* a, const opabigdec* b) {
 	if (a->inf || b->inf) {
 		if (a->inf && b->inf && a->inf == b->inf) {
 			return OPA_ERR_OVERFLOW;
 		}
 		return opabigdecSetInf(result, a->inf ? a->inf : (b->inf == OPABIGDEC_NEGINF ? OPABIGDEC_POSINF : OPABIGDEC_NEGINF));
 	} else if (a->exponent == b->exponent) {
-		return opabigdecSubInternal(a, b, result);
+		return opabigdecSubInternal(result, a, b);
 	} else if (a == result || b == result) {
 		opabigdec tmp;
-		int err = opabigdecInit(&tmp);
+		opabigdecInit(&tmp);
+		int err = opabigdecSub(&tmp, a, b);
 		if (!err) {
-			err = opabigdecSub(a, b, &tmp);
-			if (!err) {
-				err = opabigdecCopy(&tmp, result);
-			}
-			opabigdecClear(&tmp);
+			err = opabigdecCopy(result, &tmp);
 		}
+		opabigdecClear(&tmp);
 		return err;
 	} else if (a->exponent > b->exponent) {
-		int err = opabigdecCopy(a, result);
+		int err = opabigdecCopy(result, a);
 		if (!err) {
 			err = opabigdecExtend(result, a->exponent - b->exponent);
 		}
 		if (!err) {
-			err = opabigdecSubInternal(result, b, result);
+			err = opabigdecSubInternal(result, result, b);
 		}
 		return err;
 	} else {
-		int err = opabigdecCopy(b, result);
+		int err = opabigdecCopy(result, b);
 		if (!err) {
 			err = opabigdecExtend(result, b->exponent - a->exponent);
 		}
 		if (!err) {
-			err = opabigdecSubInternal(a, result, result);
+			err = opabigdecSubInternal(result, a, result);
 		}
 		return err;
 	}
 }
 
-static int opabigdecMulInternal(const opabigdec* a, const opabigdec* b, opabigdec* result) {
+static int opabigdecMulInternal(opabigdec* result, const opabigdec* a, const opabigdec* b) {
 	OASSERT(a->exponent == b->exponent);
 	int err = opabigintMul(&result->significand, &a->significand, &b->significand);
 	if (!err) {
@@ -292,7 +287,7 @@ static int opabigdecMulInternal(const opabigdec* a, const opabigdec* b, opabigde
 	return err;
 }
 
-int opabigdecMul(const opabigdec* a, const opabigdec* b, opabigdec* result) {
+int opabigdecMul(opabigdec* result, const opabigdec* a, const opabigdec* b) {
 	if (a->inf || b->inf) {
 		if (a->inf == OPABIGDEC_POSINF) {
 			return opabigdecSetInf(result, b->inf);
@@ -300,27 +295,25 @@ int opabigdecMul(const opabigdec* a, const opabigdec* b, opabigdec* result) {
 			return opabigdecSetInf(result, b->inf == OPABIGDEC_NEGINF ? OPABIGDEC_POSINF : OPABIGDEC_NEGINF);
 		}
 	} else if (a->exponent == b->exponent) {
-		return opabigdecMulInternal(a, b, result);
+		return opabigdecMulInternal(result, a, b);
 	} else if (a->exponent > b->exponent) {
-		return opabigdecMul(b, a, result);
+		return opabigdecMul(result, b, a);
 	} else if (a == result || b == result) {
 		opabigdec tmp;
-		int err = opabigdecInit(&tmp);
+		opabigdecInit(&tmp);
+		int err = opabigdecMul(&tmp, a, b);
 		if (!err) {
-			err = opabigdecMul(a, b, &tmp);
-			if (!err) {
-				err = opabigdecCopy(&tmp, result);
-			}
-			opabigdecClear(&tmp);
+			err = opabigdecCopy(result, &tmp);
 		}
+		opabigdecClear(&tmp);
 		return err;
 	} else {
-		int err = opabigdecCopy(b, result);
+		int err = opabigdecCopy(result, b);
 		if (!err) {
 			err = opabigdecExtend(result, b->exponent - a->exponent);
 		}
 		if (!err) {
-			err = opabigdecMulInternal(a, result, result);
+			err = opabigdecMulInternal(result, a, result);
 		}
 		return err;
 	}

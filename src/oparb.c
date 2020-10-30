@@ -110,14 +110,12 @@ static void oparbAddVarint(oparb* rb, uint8_t type, uint64_t val) {
 		// val too big for varint
 		if (!rb->err) {
 			opabigdec bd;
-			rb->err = opabigdecInit(&bd);
+			opabigdecInit(&bd);
+			rb->err = opabigdecSet64(&bd, val, type == OPADEF_NEGVARINT, 0);
 			if (!rb->err) {
-				rb->err = opabigdecSet64(&bd, val, type == OPADEF_NEGVARINT, 0);
-				if (!rb->err) {
-					oparbAddBigDec(rb, &bd);
-				}
-				opabigdecClear(&bd);
+				oparbAddBigDec(rb, &bd);
 			}
+			opabigdecClear(&bd);
 		}
 	}
 }
@@ -142,14 +140,12 @@ void oparbAddSO(oparb* rb, const uint8_t* so) {
 void oparbAddNumStr(oparb* rb, const char* s, const char* end) {
 	if (!rb->err) {
 		opabigdec bd;
-		rb->err = opabigdecInit(&bd);
+		opabigdecInit(&bd);
+		rb->err = opabigdecFromStr(&bd, s, end, 10);
 		if (!rb->err) {
-			rb->err = opabigdecFromStr(&bd, s, end, 10);
-			if (!rb->err) {
-				oparbAddBigDec(rb, &bd);
-			}
-			opabigdecClear(&bd);
+			oparbAddBigDec(rb, &bd);
 		}
+		opabigdecClear(&bd);
 	}
 }
 
