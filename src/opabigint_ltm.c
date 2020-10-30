@@ -194,15 +194,6 @@ int opabigintAdd(opabigint* res, const opabigint* a, const opabigint* b) {
 		} else {
 			err = converr(mp_add(a, b, res));
 		}
-		if (ISINITD(a)) {
-			if (ISINITD(b)) {
-				err = converr(mp_add(a, b, res));
-			} else {
-				err = opabigintCopy(res, a);
-			}
-		} else {
-			err = opabigintCopy(res, b);
-		}
 	}
 	return err;
 }
