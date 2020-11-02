@@ -121,17 +121,6 @@ int opabigintEnsureSpaceForCopy(opabigint* dst, const opabigint* src) {
 	return err;
 }
 
-int opabigintInitCopy(opabigint* dst, const opabigint* src) {
-	if (!ISINITD(src)) {
-		int err = ensureInit(dst);
-		if (!err) {
-			err = opabigintZero(dst);
-		}
-		return err;
-	}
-	return converr(mp_init_copy(dst, src));
-}
-
 int opabigintCopy(opabigint* dst, const opabigint* src) {
 	int err = ensureInit(dst);
 	if (!err) {

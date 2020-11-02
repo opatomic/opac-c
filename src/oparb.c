@@ -115,7 +115,7 @@ static void oparbAddVarint(oparb* rb, uint8_t type, uint64_t val) {
 			if (!rb->err) {
 				oparbAddBigDec(rb, &bd);
 			}
-			opabigdecClear(&bd);
+			opabigdecFree(&bd);
 		}
 	}
 }
@@ -145,7 +145,7 @@ void oparbAddNumStr(oparb* rb, const char* s, const char* end) {
 		if (!rb->err) {
 			oparbAddBigDec(rb, &bd);
 		}
-		opabigdecClear(&bd);
+		opabigdecFree(&bd);
 	}
 }
 

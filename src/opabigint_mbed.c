@@ -102,11 +102,6 @@ int opabigintEnsureSpaceForCopy(opabigint* dst, const opabigint* src) {
 	return converr(mbedtls_mpi_grow(dst, opabigintUsedLimbs(src)));
 }
 
-int opabigintInitCopy(opabigint* dst, const opabigint* src) {
-	mbedtls_mpi_init(dst);
-	return converr(mbedtls_mpi_copy(dst, src));
-}
-
 int opabigintCopy(opabigint* dst, const opabigint* src) {
 	return converr(mbedtls_mpi_copy(dst, src));
 }

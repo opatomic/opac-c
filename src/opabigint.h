@@ -54,7 +54,6 @@ size_t opabigintUsedLimbs(const opabigint* a);
 opabigintDigit opabigintGetLimb(const opabigint* a, size_t n);
 int opabigintEnsureSpaceForCopy(opabigint* dst, const opabigint* src);
 
-int opabigintInitCopy(opabigint* dst, const opabigint* src);
 int opabigintCopy(opabigint* dst, const opabigint* src);
 
 int opabigintAbs(opabigint* dst, const opabigint* src);

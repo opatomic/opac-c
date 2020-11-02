@@ -20,9 +20,9 @@ typedef struct {
 
 
 void opabigdecInit(opabigdec* a);
-int opabigdecInitCopy(const opabigdec* src, opabigdec* dst);
+void opabigdecFree(opabigdec* a);
+
 int opabigdecCopy(opabigdec* dst, const opabigdec* src);
-void opabigdecClear(opabigdec* a);
 
 int opabigdecIsNeg(const opabigdec* a);
 int opabigdecIsZero(const opabigdec* a);

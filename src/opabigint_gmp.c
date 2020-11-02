@@ -64,11 +64,6 @@ int opabigintEnsureSpaceForCopy(opabigint* dst, const opabigint* src) {
 	return 0;
 }
 
-int opabigintInitCopy(opabigint* dst, const opabigint* src) {
-	mpz_init_set(dst, src);
-	return 0;
-}
-
 int opabigintCopy(opabigint* dst, const opabigint* src) {
 	mpz_set(dst, src);
 	return 0;

@@ -275,7 +275,7 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 					}
 				}
 			}
-			opabigdecClear(&bd);
+			opabigdecFree(&bd);
 			return err;
 		}
 

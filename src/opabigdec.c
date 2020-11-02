@@ -31,16 +31,6 @@ void opabigdecInit(opabigdec* a) {
 	a->inf = 0;
 }
 
-int opabigdecInitCopy(const opabigdec* src, opabigdec* dst) {
-	OASSERT(src != dst);
-	int err = opabigintInitCopy(&dst->significand, &src->significand);
-	if (!err) {
-		dst->exponent = src->exponent;
-		dst->inf = src->inf;
-	}
-	return err;
-}
-
 int opabigdecCopy(opabigdec* dst, const opabigdec* src) {
 	if (src == dst) {
 		return 0;
@@ -53,7 +43,7 @@ int opabigdecCopy(opabigdec* dst, const opabigdec* src) {
 	return err;
 }
 
-void opabigdecClear(opabigdec* a) {
+void opabigdecFree(opabigdec* a) {
 	opabigintFree(&a->significand);
 	a->exponent = 0;
 	a->inf = 0;
@@ -125,7 +115,8 @@ int opabigdecGetMag64(const opabigdec* a, uint64_t* pVal) {
 		opabigint tmp;
 		opabigintDigit rem = 0;
 		int32_t exp;
-		int err = opabigintInitCopy(&tmp, &a->significand);
+		opabigintInit(&tmp);
+		int err = opabigintCopy(&tmp, &a->significand);
 		// TODO: can batch this into fewer calls by calling opabigintDivDig() with 10/100/1000/10000/etc
 		for (exp = a->exponent; !err && exp < 0 && rem == 0; ++exp) {
 			err = opabigintDivDig(&tmp, &rem, &tmp, 10);
@@ -217,7 +208,7 @@ int opabigdecAdd(opabigdec* result, const opabigdec* a, const opabigdec* b) {
 		if (!err) {
 			err = opabigdecCopy(result, &tmp);
 		}
-		opabigdecClear(&tmp);
+		opabigdecFree(&tmp);
 		return err;
 	} else {
 		int err = opabigdecCopy(result, b);
@@ -255,7 +246,7 @@ int opabigdecSub(opabigdec* result, const opabigdec* a, const opabigdec* b) {
 		if (!err) {
 			err = opabigdecCopy(result, &tmp);
 		}
-		opabigdecClear(&tmp);
+		opabigdecFree(&tmp);
 		return err;
 	} else if (a->exponent > b->exponent) {
 		int err = opabigdecCopy(result, a);
@@ -305,7 +296,7 @@ int opabigdecMul(opabigdec* result, const opabigdec* a, const opabigdec* b) {
 		if (!err) {
 			err = opabigdecCopy(result, &tmp);
 		}
-		opabigdecClear(&tmp);
+		opabigdecFree(&tmp);
 		return err;
 	} else {
 		int err = opabigdecCopy(result, b);
