@@ -318,7 +318,7 @@ static char tolowerascii(char ch) {
 }
 
 static int isinfstrInternal(const char* b, size_t len) {
-	static const char* a = "infinity";
+	const char* a = "infinity";
 	OASSERT(len > 0 && len <= strlen(a));
 	for (; len > 0; --len, ++a, ++b) {
 		if (*a != tolowerascii(*b)) {
