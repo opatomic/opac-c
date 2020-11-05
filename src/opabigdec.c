@@ -280,10 +280,10 @@ static int opabigdecMulInternal(opabigdec* result, const opabigdec* a, const opa
 
 int opabigdecMul(opabigdec* result, const opabigdec* a, const opabigdec* b) {
 	if (a->inf || b->inf) {
-		if (a->inf == OPABIGDEC_POSINF) {
-			return opabigdecSetInf(result, b->inf);
+		if (opabigdecIsZero(a) || opabigdecIsZero(b)) {
+			return opabigdecSet64(result, 0, 0, 0);
 		} else {
-			return opabigdecSetInf(result, b->inf == OPABIGDEC_NEGINF ? OPABIGDEC_POSINF : OPABIGDEC_NEGINF);
+			return opabigdecSetInf(result, opabigdecIsNeg(a) == opabigdecIsNeg(b) ? OPABIGDEC_POSINF : OPABIGDEC_NEGINF);
 		}
 	} else if (a->exponent == b->exponent) {
 		return opabigdecMulInternal(result, a, b);
