@@ -14,5 +14,5 @@ jobs:
       working-directory: build
       run: |
         ./build
-        CFLAGS="-DOPA_USEGMP" ./build
+        OPABIGINT_LIB=GMP ./build
         CFLAGS="-DOPA_NOTHREADS" ./build
