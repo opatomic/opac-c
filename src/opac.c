@@ -499,7 +499,7 @@ void opacClose(opac* c) {
 	// note: c->currSendReq is added to mainReqs or asyncReqs (or neither if has NULL asyncid)
 	//  therefore, it is important to remember this in opacCloseReq() above
 	if (c->currSendReq != NULL) {
-		opacHandleReqErr(c,  c->currSendReq, OPAC_RER_CLOSED, 0);
+		opacHandleReqErr(c, c->currSendReq, OPAC_RER_CLOSED, 0);
 	}
 
 	while (1) {
@@ -507,7 +507,7 @@ void opacClose(opac* c) {
 		if (qi == NULL) {
 			break;
 		}
-		opacHandleReqErr(c,  list_entry(qi, opacReq, qi), OPAC_RER_CLOSED, 0);
+		opacHandleReqErr(c, list_entry(qi, opacReq, qi), OPAC_RER_CLOSED, 0);
 	}
 
 	while (1) {
