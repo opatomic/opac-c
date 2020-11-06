@@ -24,7 +24,10 @@ static void oparbAppend(oparb* rb, const void* src, size_t srcLen) {
 }
 
 void oparbInit(oparb* rb, const uint8_t* asyncId, size_t idLen) {
-	memset(rb, 0, sizeof(oparb));
+	opabuffInit(&rb->buff, 0);
+	rb->depth = 0;
+	rb->err = 0;
+	rb->errDesc = NULL;
 	oparbAppend1(rb, OPADEF_ARRAY_START);
 	if (asyncId != NULL && idLen > 0) {
 		oparbAppend(rb, asyncId, idLen);
@@ -342,7 +345,8 @@ static void oparbAddUnEscapedStrOrBin(oparb* rb, const char* s, size_t len, int 
 }
 
 static void oparbAddUserStrOrBin(oparb* rb, const char* s, const char* end, int type) {
-	opabuff tmp = {0};
+	opabuff tmp;
+	opabuffInit(&tmp, 0);
 	if (!rb->err) {
 		rb->err = oparbStrUnescape(s, end, &tmp);
 		if (rb->err == OPA_ERR_PARSE) {

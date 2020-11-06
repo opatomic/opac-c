@@ -297,7 +297,8 @@ char* opasoStringify(const uint8_t* src, const char* space) {
 	if (src == NULL) {
 		return NULL;
 	}
-	opabuff b = {0};
+	opabuff b;
+	opabuffInit(&b, 0);
 	int err = opasoStringifyInternal(src, space, 0, &b);
 	if (!err) {
 		err = opabuffAppend1(&b, 0);
