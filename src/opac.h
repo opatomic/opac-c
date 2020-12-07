@@ -97,7 +97,7 @@ void opacReqFreeResponse(opacReq* r);
 /**
  * Determine whether request has been sent
  * @param r Request/response object to check
- * @return 0 if response not yet written; else non-zero
+ * @return 0 if request not yet written; else non-zero
  */
 int opacReqIsSent(const opacReq* r);
 
