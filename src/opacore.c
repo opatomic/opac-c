@@ -469,7 +469,7 @@ int opaStrCmpNoCaseAsciiLen(const void* v1, size_t l1, const void* v2, size_t l2
 /*
 void opacorePrintLowerLUT() {
 	char lut[256];
-	for (int ch = 0; ch <= 256; ++ch) {
+	for (int ch = 0; ch < sizeof(lut); ++ch) {
 		lut[ch] = ch;
 	}
 	for (int ch = 'A'; ch <= 'Z'; ++ch) {
