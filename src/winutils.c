@@ -61,8 +61,8 @@ static void winGetRealVersion(winRealVerInfo* info) {
 	static int infoLoaded = 0;
 	static winRealVerInfo cachedInfo;
 	if (!infoLoaded) {
-		infoLoaded = 1;
 		winGetRealVersionInternal(&cachedInfo);
+		infoLoaded = 1;
 	}
 	memcpy(info, &cachedInfo, sizeof(cachedInfo));
 }
