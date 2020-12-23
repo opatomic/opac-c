@@ -102,7 +102,7 @@ void opaszmem(void* s, size_t n) {
 #endif
 
 
-static const char* opaBasename(const char* file) {
+const char* opaBasename(const char* file) {
 	const char* pos = strrchr(file, OPA_DIRCHAR);
 	return pos == NULL ? file : pos + 1;
 }

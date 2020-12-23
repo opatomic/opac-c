@@ -185,6 +185,7 @@ int opaIsNumStr(const char* s, const char* end);
 int opaIsInfStr(const char* str, size_t len);
 const uint8_t* opaFindInvalidUtf8(const uint8_t* s, size_t len);
 
+const char* opaBasename(const char* file);
 char opaToLowerAscii(char ch);
 int opaStrCmpNoCaseAscii(const char* s1, const char* s2);
 int opaStrCmpNoCaseAsciiLen(const void* s1, size_t l1, const void* s2, size_t l2);
