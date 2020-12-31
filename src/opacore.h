@@ -190,5 +190,7 @@ char opaToLowerAscii(char ch);
 int opaStrCmpNoCaseAscii(const char* s1, const char* s2);
 int opaStrCmpNoCaseAsciiLen(const void* s1, size_t l1, const void* s2, size_t l2);
 
+int opacoreReadFile(const char* path, uint8_t** pBuff, size_t* pLen);
+
 
 #endif

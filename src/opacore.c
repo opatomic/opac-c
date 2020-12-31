@@ -483,3 +483,48 @@ void opacorePrintLowerLUT() {
 	}
 }
 */
+
+// read a file into a null terminated string buffer
+int opacoreReadFile(const char* path, uint8_t** pBuff, size_t* pLen) {
+	uint8_t* buff = NULL;
+	off_t len = 0;
+	off_t totRead = 0;
+	FILE* f = fopen(path, "rb");
+	if (f == NULL) {
+		goto err;
+	}
+	if (fseeko(f, 0, SEEK_END) != 0) {
+		goto err;
+	}
+	len = ftello(f);
+	if (len < 0) {
+		goto err;
+	}
+	rewind(f);
+
+	buff = OPAMALLOC(len + 1);
+	if (buff == NULL) {
+		goto err;
+	}
+	while (totRead < len) {
+		totRead += fread(buff + totRead, 1, len - totRead, f);
+		if (ferror(f)) {
+			goto err;
+		}
+	}
+	fclose(f);
+	buff[len] = 0;
+	*pBuff = buff;
+	*pLen = len;
+	return 0;
+
+	err:
+	LOGSYSERRNO();
+	if (f != NULL) {
+		fclose(f);
+	}
+	if (buff != NULL && len > 0) {
+		opaZeroAndFree(buff, len);
+	}
+	return OPA_ERR_INTERNAL;
+}
