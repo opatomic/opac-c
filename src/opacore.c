@@ -3,6 +3,20 @@
  * Open sourced with ISC license. Refer to LICENSE for details.
  */
 
+#ifdef __linux__
+#define _POSIX_C_SOURCE 200808L // ftello fseeko
+#endif
+
+#ifdef _WIN32
+#define fopen winfopen
+// fseeko/ftello/off_t are defined when compiling with mingw and _FILE_OFFSET_BITS=64 (see /usr/share/mingw-w64/include/stdio.h)
+#ifndef ftello
+#define fseeko _fseeki64
+#define ftello _ftelli64
+#define off_t __int64
+#endif
+#endif
+
 #ifdef _WIN32
 	#include <windows.h>
 	// note: windows does not have flockfile or funlockfile
@@ -26,6 +40,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "winutils.h"
 
 #include "opacore.h"
 
