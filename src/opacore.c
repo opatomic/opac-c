@@ -8,16 +8,6 @@
 #endif
 
 #ifdef _WIN32
-#define fopen winfopen
-// fseeko/ftello/off_t are defined when compiling with mingw and _FILE_OFFSET_BITS=64 (see /usr/share/mingw-w64/include/stdio.h)
-#ifndef ftello
-#define fseeko _fseeki64
-#define ftello _ftelli64
-#define off_t __int64
-#endif
-#endif
-
-#ifdef _WIN32
 	#include <windows.h>
 	// note: windows does not have flockfile or funlockfile
 	//   _lock_file and _unlock_file exist but may not be supported in older versions of windows?
@@ -43,6 +33,17 @@
 #include "winutils.h"
 
 #include "opacore.h"
+
+
+#ifdef _WIN32
+#define fopen winfopen
+// fseeko/ftello/off_t are defined when compiling with mingw and _FILE_OFFSET_BITS=64 (see /usr/share/mingw-w64/include/stdio.h)
+#ifndef ftello
+#define fseeko _fseeki64
+#define ftello _ftelli64
+#define off_t __int64
+#endif
+#endif
 
 
 #define OPA_LOGSTRPRE "%s(%s:%d): "
