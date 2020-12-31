@@ -16,3 +16,39 @@ jobs:
         ./build
         OPABIGINT_LIB=GMP ./build
         CFLAGS="-DOPA_NOTHREADS" ./build
+
+  build-linux-i386:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install deps
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-multilib
+    - name: build
+      working-directory: build
+      run: CFLAGS="-march=i386 -m32" LDFLAGS="-march=i386 -m32" ./build
+
+  build-mingw-win32:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install deps
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-multilib mingw-w64
+    - name: build
+      working-directory: build
+      run: CC=i686-w64-mingw32-gcc AR=i686-w64-mingw32-ar TGTOS=win ./build
+
+  build-mingw-win64:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install deps
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-multilib mingw-w64
+    - name: build
+      working-directory: build
+      run: CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar TGTOS=win ./build
