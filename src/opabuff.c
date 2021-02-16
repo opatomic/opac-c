@@ -3,7 +3,9 @@
  * Open sourced with ISC license. Refer to LICENSE for details.
  */
 
+#ifdef __linux__
 #define _POSIX_C_SOURCE 200112L // posix_memalign
+#endif
 
 #include <stdlib.h>
 #include <string.h>
