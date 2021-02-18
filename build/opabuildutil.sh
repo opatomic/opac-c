@@ -1,5 +1,5 @@
 
-CC="${CC:-cc}"
+CC="${CC:-gcc}"
 AR="${AR:-ar}"
 ARFLAGS="${ARFLAGS:--rcs}"
 
