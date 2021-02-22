@@ -2,6 +2,7 @@
 CC="${CC:-gcc}"
 AR="${AR:-ar}"
 ARFLAGS="${ARFLAGS:--rcs}"
+ccache --version > /dev/null 2>&1 && CCACHE="${CCACHE-ccache}" || CCACHE="${CCACHE-}"
 
 if [ "$OS" = "Windows_NT" ]; then
 	# running mingw on windows
@@ -70,7 +71,7 @@ buildcfile() {
 	if [ "$3" != "MP" ]; then
 		echo "building $FNAME.c"
 	fi
-	$CC -c $GCCWARN $DEFS $INCS $CFLAGS -o "$2/$FNAME.o" "$FNAME.c" || exit 1
+	$CCACHE $CC -c $GCCWARN $DEFS $INCS $CFLAGS -o "$2/$FNAME.o" "$FNAME.c" || exit 1
 	if [ "$3" = "MP" ]; then
 		echo "built $FNAME.c"
 	fi
