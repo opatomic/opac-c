@@ -96,6 +96,27 @@ size_t opasolen(const uint8_t* obj) { // @suppress("No return")
 	//return 1;
 }
 
+int opasoGetStrOrBin(const uint8_t* so, const uint8_t** pStrStart, size_t* pLen) {
+	if (*so == OPADEF_STR_LPVI || *so == OPADEF_BIN_LPVI) {
+		uint64_t len;
+		const uint8_t* start;
+		int err = opaviLoadWithErr(so + 1, &len, &start);
+		if (len > SIZE_MAX && !err) {
+			err = OPA_ERR_OVERFLOW;
+		}
+		if (!err) {
+			*pStrStart = start;
+			*pLen = len;
+		}
+		return err;
+	} else if (*so == OPADEF_STR_EMPTY || *so == OPADEF_BIN_EMPTY) {
+		*pStrStart = NULL;
+		*pLen = 0;
+		return 0;
+	}
+	return OPA_ERR_INVARG;
+}
+
 static int opabuffAppendStr(opabuff* b, const char* str) {
 	return opabuffAppend(b, str, strlen(str));
 }

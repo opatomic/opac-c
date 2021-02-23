@@ -14,6 +14,7 @@
 
 size_t opasolen(const uint8_t* obj);
 int opasoIsNumber(uint8_t type);
+int opasoGetStrOrBin(const uint8_t* so, const uint8_t** pStrStart, size_t* pLen);
 
 char* opasoStringify(const uint8_t* src, const char* space);
 int opasoStringifyToBuff(const uint8_t* src, const char* space, opabuff* b);
