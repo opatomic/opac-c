@@ -73,7 +73,9 @@ void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWOR
 #define LOGSYSERRNO() LOGSYSERR(errno)
 
 
-#ifndef OPAMALLOC
+#if defined(OPAMALLOC_USE_SHIM)
+	#include "opamalloc.h"
+#elif !defined(OPAMALLOC)
 	#include <stdlib.h>
 	#define OPAMALLOC  malloc
 	#define OPAFREE    free
