@@ -121,6 +121,26 @@ FILE* winfopen(const char* filename, const char* opentype) {
 	return f;
 }
 
+void usleep(unsigned long usec) {
+	LARGE_INTEGER li;
+	// SetWaitableTimer: negative value indicates relative time; positive value indicate absolute time
+	//  value is in 100-nanosecond intervals
+	li.QuadPart = 0LL - ((long long)usec * 10);
+	HANDLE ht = CreateWaitableTimer(NULL, TRUE, NULL);
+	if (ht != NULL) {
+		if (SetWaitableTimer(ht, &li, 0, NULL, NULL, FALSE)) {
+			WaitForSingleObject(ht, INFINITE);
+		} else {
+			LOGWINERR();
+		}
+		if (!CloseHandle(ht)) {
+			LOGWINERR();
+		}
+	} else {
+		LOGWINERR();
+	}
+}
+
 #else
 
 // this is here to get rid of a warning for "an empty translation unit"
