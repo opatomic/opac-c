@@ -146,7 +146,7 @@ ATTR_NORETURN
 void opacorePanic (const char* func, const char* filename, int line, const char* s);
 
 #ifdef __GNUC__
-	#ifdef _WIN32
+	#if defined(_WIN32) && (((__GNUC__ == 4 && __GNUC_MINOR__>= 4) || __GNUC__ > 4))
 		#define OPA_ATTR_PRINTF_FFLF __attribute__((__format__ (gnu_printf, 4, 5)))
 	#else
 		#define OPA_ATTR_PRINTF_FFLF __attribute__((__format__ (__printf__, 4, 5)))
