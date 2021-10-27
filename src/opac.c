@@ -281,10 +281,6 @@ static int opacOnResponse(opac* c) {
 	}
 
 	if (errObj != NULL && *errObj != OPADEF_NULL) {
-		if (*result != OPADEF_NULL) {
-			// result or err must be null
-			return OPA_ERR_PARSE;
-		}
 		result = NULL;
 	} else {
 		errObj = NULL;
