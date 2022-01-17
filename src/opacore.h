@@ -159,6 +159,7 @@ void opacorePanic (const char* func, const char* filename, int line, const char*
 		#define OPA_ATTR_PRINTF_FFLF __attribute__((__format__ (__printf__, 4, 5)))
 	#endif
 #else
+	#define OPA_ATTR_PRINTF
 	#define OPA_ATTR_PRINTF_FFLF
 #endif
 
