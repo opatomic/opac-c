@@ -55,11 +55,17 @@
 typedef unsigned long DWORD;
 #endif
 
-#define OPALOGF(format, ...)    opacoreLogf   (OPAFUNC, __FILE__, __LINE__, format, __VA_ARGS__)
+#ifdef OPADBG
+#define OPALOGF(format, ...) opacoreLogf(OPAFUNC, __FILE__, __LINE__, format, __VA_ARGS__)
+#define OPALOG(str)          opacoreLog (OPAFUNC, __FILE__, __LINE__, str)
+#else
+#define OPALOGF(format, ...) opacoreLogf(format "\n", __VA_ARGS__)
+#define OPALOG(str)          opacoreLog(str)
+#endif
+
 #define OPALOGERRF(format, ...) opacoreLogErrf(OPAFUNC, __FILE__, __LINE__, format, __VA_ARGS__)
 #define OPAPANICF(format, ...)  opacorePanicf (OPAFUNC, __FILE__, __LINE__, format, __VA_ARGS__)
 
-#define OPALOG(str)    opacoreLog   (OPAFUNC, __FILE__, __LINE__, str)
 #define OPALOGERR(str) opacoreLogErr(OPAFUNC, __FILE__, __LINE__, str)
 #define OPAPANIC(str)  opacorePanic (OPAFUNC, __FILE__, __LINE__, str)
 
@@ -140,22 +146,32 @@ void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWOR
 void opacoreCovTestAssert(const char* func, const char* filename, int line, int v, const char* s);
 #endif
 
-void opacoreLog   (const char* func, const char* filename, int line, const char* s);
 void opacoreLogErr(const char* func, const char* filename, int line, const char* s);
 ATTR_NORETURN
 void opacorePanic (const char* func, const char* filename, int line, const char* s);
 
 #ifdef __GNUC__
 	#if defined(_WIN32) && (((__GNUC__ == 4 && __GNUC_MINOR__>= 4) || __GNUC__ > 4))
+		#define OPA_ATTR_PRINTF      __attribute__((__format__ (gnu_printf, 1, 2)))
 		#define OPA_ATTR_PRINTF_FFLF __attribute__((__format__ (gnu_printf, 4, 5)))
 	#else
+		#define OPA_ATTR_PRINTF      __attribute__((__format__ (__printf__, 1, 2)))
 		#define OPA_ATTR_PRINTF_FFLF __attribute__((__format__ (__printf__, 4, 5)))
 	#endif
 #else
 	#define OPA_ATTR_PRINTF_FFLF
 #endif
+
+#ifdef OPADBG
+void opacoreLog (const char* func, const char* filename, int line, const char* s);
 OPA_ATTR_PRINTF_FFLF
-void opacoreLogf   (const char* func, const char* filename, int line, const char* format, ...);
+void opacoreLogf(const char* func, const char* filename, int line, const char* format, ...);
+#else
+void opacoreLog (const char* s);
+OPA_ATTR_PRINTF
+void opacoreLogf(const char* format, ...);
+#endif
+
 OPA_ATTR_PRINTF_FFLF
 void opacoreLogErrf(const char* func, const char* filename, int line, const char* format, ...);
 OPA_ATTR_PRINTF_FFLF

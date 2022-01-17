@@ -123,9 +123,24 @@ const char* opaBasename(const char* file) {
 	return pos == NULL ? file : pos + 1;
 }
 
+#ifdef OPADBG
 void opacoreLogf(const char* func, const char* filename, int line, const char* format, ...) {
 	LOGINTERNAL(stdout, OPA_LOGSTRPRE, func, filename, line, format);
 }
+void opacoreLog(const char* func, const char* filename, int line, const char* s) {
+	opacoreLogf(func, filename, line, "%s", s);
+}
+#else
+void opacoreLogf(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	vprintf(format, args);
+	va_end(args);
+}
+void opacoreLog (const char* s) {
+	puts(s);
+}
+#endif
 
 void opacoreLogErrf(const char* func, const char* filename, int line, const char* format, ...) {
 	LOGINTERNAL(stderr, OPA_ERRSTRPRE, func, filename, line, format);
@@ -138,10 +153,6 @@ ATTR_NORETURN void opacorePanicf(const char* func, const char* filename, int lin
 	*((char*)-1) = 'x';
 	//exit(EXIT_FAILURE);
 	abort();
-}
-
-void opacoreLog(const char* func, const char* filename, int line, const char* s) {
-	opacoreLogf(func, filename, line, "%s", s);
 }
 
 void opacoreLogErr(const char* func, const char* filename, int line, const char* s) {
