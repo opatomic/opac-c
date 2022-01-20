@@ -17,7 +17,7 @@ jobs:
         OPABIGINT_LIB=GMP ./build
         CFLAGS="-DOPA_NOTHREADS" ./build
 
-  build-linux-i386:
+  build-linux-i686:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -27,7 +27,7 @@ jobs:
         sudo apt-get install -y gcc-multilib
     - name: build
       working-directory: build
-      run: CFLAGS="-march=i386 -m32" LDFLAGS="-march=i386 -m32" ./build
+      run: CFLAGS="-march=i686 -m32" LDFLAGS="-march=i686 -m32" ./build
 
   build-mingw-win32:
     runs-on: ubuntu-latest

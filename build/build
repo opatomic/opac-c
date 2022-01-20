@@ -16,7 +16,7 @@
 #   CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar ./build
 # to target 32-bit from 64-bit ubuntu:
 #   sudo apt-get install gcc-multilib
-#   CFLAGS="-march=i386 -m32" ./build
+#   CFLAGS="-march=i686 -m32" ./build
 # to use GMP rather than libtommath:
 #   sudo apt-get install libgmp3-dev
 #   OPABIGINT_LIB=GMP ./build
