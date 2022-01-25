@@ -14,12 +14,6 @@
 	//   _lock_file and _unlock_file exist but may not be supported in older versions of windows?
 	//#define flockfile _lock_file
 	//#define funlockfile _unlock_file
-
-	// define stderr to stdout because eclipse isn't logging stderr to console properly. not sure why
-	// TODO: figure out how to fix this
-	#if !defined(OPA_STDERR) && defined(OPADBG)
-		#define OPA_STDERR stdout
-	#endif
 	#define OPA_DIRCHAR '\\'
 #else
 	#include <sys/time.h>
@@ -50,10 +44,6 @@
 #define OPA_ERRSTRPRE "error in " OPA_LOGSTRPRE
 
 #define TMPBUFFLEN 512
-
-#ifndef OPA_STDERR
-	#define OPA_STDERR stderr
-#endif
 
 
 #ifdef _WIN32
