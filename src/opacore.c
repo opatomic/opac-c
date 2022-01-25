@@ -5,6 +5,7 @@
 
 #ifdef __linux__
 #define _POSIX_C_SOURCE 200808L // ftello fseeko
+#define _GNU_SOURCE             // strerror_r
 #endif
 
 #ifdef _WIN32
@@ -21,7 +22,6 @@
 	#endif
 	#define OPA_DIRCHAR '\\'
 #else
-	#define _GNU_SOURCE // strerror_r
 	#include <sys/time.h>
 	#define OPA_DIRCHAR '/'
 #endif
