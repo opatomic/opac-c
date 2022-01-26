@@ -10,6 +10,7 @@
 
 #ifdef _WIN32
 	#include <windows.h>
+	#include <io.h>
 	// note: windows does not have flockfile or funlockfile
 	//   _lock_file and _unlock_file exist but may not be supported in older versions of windows?
 	//#define flockfile _lock_file
@@ -40,21 +41,42 @@
 #endif
 
 
-#define OPA_LOGSTRPRE "%s(%s:%d): "
-#define OPA_ERRSTRPRE "error in " OPA_LOGSTRPRE
-
 #define TMPBUFFLEN 512
 
 
 #ifdef _WIN32
 
-#define LOGINTERNAL(f, fmt1, func, filename, line, fmt2) \
-	char tmp[TMPBUFFLEN];                                \
-	va_list args;                                        \
-	va_start(args, fmt2);                                \
-	vsnprintf(tmp, sizeof(tmp), fmt2, args);             \
-	va_end(args);                                        \
-	fprintf(f, fmt1 "%s\n", func, opaBasename(filename), line, tmp);
+static int opa_vfprintf(FILE* f, const char* format, va_list ap) {
+	int fd = _fileno(f);
+	if (_isatty(fd)) {
+		// logging to console: use WriteConsoleW() to preserve unicode strings
+		intptr_t hi = _get_osfhandle(fd);
+		HANDLE h = (HANDLE) hi;
+
+		int retVal = -1;
+		int allocLen = _vscprintf(format, ap);
+		char* allocBuff = allocLen >= 0 ? OPAMALLOC(++allocLen) : NULL;
+		if (allocBuff != NULL && vsnprintf(allocBuff, allocLen, format, ap) > 0) {
+			wchar_t* wstr = NULL;
+			int err = winUtf8ToWide(allocBuff, &wstr);
+			if (!err) {
+				// TODO: lock mutex to join fflush() and WriteConsoleW() into a single atomic operation? use flockfile/_lock_file? are those functions available somewhere in win2k?
+				//   probably shouldn't worry too much since stdout and stderr are probably both going to console and locking/flushing them in an atomic manner will be difficult?
+				DWORD numWrittenToConsole = 0;
+				fflush(f);
+				if (WriteConsoleW(h, wstr, wcslen(wstr), &numWrittenToConsole, NULL)) {
+					retVal = numWrittenToConsole;
+				}
+				OPAFREE(wstr);
+			}
+		}
+		OPAFREE(allocBuff);
+		return retVal;
+	} else {
+		// not logging to console - no conversion necessary
+		return vfprintf(f, format, ap);
+	}
+}
 
 uint64_t opaTimeMillis(void) {
 	// https://stackoverflow.com/questions/1695288/getting-the-current-time-in-milliseconds-from-the-system-clock-in-windows
@@ -63,31 +85,49 @@ uint64_t opaTimeMillis(void) {
 	return (((((uint64_t) t.dwHighDateTime) << 32) | ((uint64_t)t.dwLowDateTime)) - 116444736000000000ULL) / 10000ULL;
 }
 
-void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWORD err) {
-	// TODO: have FormatMessage() allocate buffer to reduce stack size required? error cases should be infrequent so performance would not be affected
-	const char* msg = "cannot determine err string in FormatMessage()";
-	char tmpbuff[TMPBUFFLEN];
-	if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), tmpbuff, sizeof(tmpbuff), NULL) > 0) {
-		msg = tmpbuff;
-		size_t len = strlen(tmpbuff);
-		if (len > 0 && tmpbuff[len - 1] == '\n') {
-			tmpbuff[--len] = 0;
+static int isAscii(const char* s) {
+	for (; *s != 0; ++s) {
+		if (*s < 0) {
+			return 0;
 		}
 	}
-	opacoreLogErrf(func, filename, line, "system error 0x%lx; %s", err, msg);
+	return 1;
+}
+
+void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWORD errnum) {
+	// TODO: have FormatMessage() allocate buffer to reduce stack size required? error cases should be infrequent so performance would not be affected
+	int success = 0;
+	wchar_t tmpbuff[TMPBUFFLEN];
+	if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errnum, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), tmpbuff, sizeof(tmpbuff) / sizeof(tmpbuff[0]), NULL) > 0) {
+		char* utf8Msg = NULL;
+		int ignoreErr = winWideToUtf8(tmpbuff, &utf8Msg);
+		if (!ignoreErr) {
+			size_t len = strlen(utf8Msg);
+			if (len > 0 && utf8Msg[len - 1] == '\n') {
+				utf8Msg[--len] = 0;
+			}
+			if (opa_fprintf(stderr, "%s(%s:%d): win32 err %lu; %s\n", func, filename, line, errnum, utf8Msg) >= 0) {
+				success = 1;
+			}
+			OPAFREE(utf8Msg);
+			return;
+		}
+	}
+	if (!success) {
+		// try to log error code without allocating memory
+		if (isAscii(filename)) {
+			if (isAscii(func)) {
+				fprintf(stderr, "%s(%s:%d): win32 err %lu\n", func, filename, line, errnum);
+			} else {
+				fprintf(stderr, "(%s:%d): win32 err %lu\n", filename, line, errnum);
+			}
+		} else {
+			fprintf(stderr, "win32 err %lu\n", errnum);
+		}
+	}
 }
 
 #else
-
-#define LOGINTERNAL(f, fmt1, func, filename, line, fmt2) \
-	va_list args;                                        \
-	va_start(args, fmt2);                                \
-	flockfile(f);                                        \
-	fprintf(f, fmt1, func, opaBasename(filename), line); \
-	vfprintf(f, fmt2, args);                             \
-	fprintf(f, "\n");                                    \
-	funlockfile(f);                                      \
-	va_end(args);
 
 uint64_t opaTimeMillis(void) {
 	struct timeval t;
@@ -105,6 +145,10 @@ void opaszmem(void* s, size_t n) {
 	(memsetFunc)(s, 0, n);
 }
 
+static int opa_vfprintf(FILE* f, const char* format, va_list ap) {
+	return vfprintf(f, format, ap);
+}
+
 #endif
 
 
@@ -113,31 +157,53 @@ const char* opaBasename(const char* file) {
 	return pos == NULL ? file : pos + 1;
 }
 
-#ifdef OPADBG
-void opacoreLogf(const char* func, const char* filename, int line, const char* format, ...) {
-	LOGINTERNAL(stdout, OPA_LOGSTRPRE, func, filename, line, format);
-}
-void opacoreLog(const char* func, const char* filename, int line, const char* s) {
-	opacoreLogf(func, filename, line, "%s", s);
-}
-#else
-void opacoreLogf(const char* format, ...) {
+int opa_fprintf(FILE* f, const char* format, ...) {
 	va_list args;
 	va_start(args, format);
-	vprintf(format, args);
+	int result = opa_vfprintf(f, format, args);
+	va_end(args);
+	return result;
+}
+
+int opa_printf(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	int result = opa_vfprintf(stdout, format, args);
+	va_end(args);
+	return result;
+}
+
+static void opacoreLogInternal(FILE* f, const char* func, const char* filename, int line, const char* format, va_list args) {
+	char tmp[TMPBUFFLEN];
+	vsnprintf(tmp, sizeof(tmp), format, args);
+	opa_fprintf(f, "%s(%s:%d): %s\n", func, opaBasename(filename), line, tmp);
+}
+
+#ifdef OPADBG
+void opacoreLogFFLF(const char* func, const char* filename, int line, const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	opacoreLogInternal(stdout, func, filename, line, format, args);
 	va_end(args);
 }
+#else
 void opacoreLog (const char* s) {
-	puts(s);
+	opa_fprintf(stdout, "%s\n", s);
 }
 #endif
 
 void opacoreLogErrf(const char* func, const char* filename, int line, const char* format, ...) {
-	LOGINTERNAL(stderr, OPA_ERRSTRPRE, func, filename, line, format);
+	va_list args;
+	va_start(args, format);
+	opacoreLogInternal(stderr, func, filename, line, format, args);
+	va_end(args);
 }
 
 ATTR_NORETURN void opacorePanicf(const char* func, const char* filename, int line, const char* format, ...) {
-	LOGINTERNAL(stderr, OPA_ERRSTRPRE, func, filename, line, format);
+	va_list args;
+	va_start(args, format);
+	opacoreLogInternal(stderr, func, filename, line, format, args);
+	va_end(args);
 
 	// TODO*: make sure all data is written before exiting from panic!
 	*((char*)-1) = 'x';

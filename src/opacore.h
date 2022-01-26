@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 //#include <string.h>
 
 
@@ -56,10 +57,10 @@ typedef unsigned long DWORD;
 #endif
 
 #ifdef OPADBG
-#define OPALOGF(format, ...) opacoreLogf(OPAFUNC, __FILE__, __LINE__, format, __VA_ARGS__)
-#define OPALOG(str)          opacoreLog (OPAFUNC, __FILE__, __LINE__, str)
+#define OPALOGF(format, ...) opacoreLogFFLF(OPAFUNC, __FILE__, __LINE__, format, __VA_ARGS__)
+#define OPALOG(str)          opacoreLogFFLF(OPAFUNC, __FILE__, __LINE__, "%s", str)
 #else
-#define OPALOGF(format, ...) opacoreLogf(format "\n", __VA_ARGS__)
+#define OPALOGF(format, ...) opa_printf(format "\n", __VA_ARGS__)
 #define OPALOG(str)          opacoreLog(str)
 #endif
 
@@ -164,13 +165,10 @@ void opacorePanic (const char* func, const char* filename, int line, const char*
 #endif
 
 #ifdef OPADBG
-void opacoreLog (const char* func, const char* filename, int line, const char* s);
 OPA_ATTR_PRINTFFLF
-void opacoreLogf(const char* func, const char* filename, int line, const char* format, ...);
+void opacoreLogFFLF(const char* func, const char* filename, int line, const char* format, ...);
 #else
 void opacoreLog (const char* s);
-OPA_ATTR_PRINTF
-void opacoreLogf(const char* format, ...);
 #endif
 
 OPA_ATTR_PRINTFFLF
@@ -180,6 +178,9 @@ ATTR_NORETURN
 void opacorePanicf (const char* func, const char* filename, int line, const char* format, ...);
 
 void opacoreLogStrerr(const char* func, const char* filename, int line, int errnum);
+
+int opa_fprintf(FILE* f, const char* format, ...);
+int opa_printf(const char* format, ...);
 
 #ifdef _WIN32
 #define opaszmem SecureZeroMemory
