@@ -138,7 +138,7 @@ int opabigintSetU64(opabigint* a, uint64_t val) {
 		return opabigintCopy(a, &tmpInt);
 	} else if (sizeof(mbedtls_mpi_uint) == 4) {
 		// TODO: test this!
-		mbedtls_mpi_uint tmpLimbs[2] = {val >> 32, val & 0xFFFFFFFF};
+		mbedtls_mpi_uint tmpLimbs[2] = {val & 0xFFFFFFFF, val >> 32};
 		mbedtls_mpi tmpInt = {.s = 1, .n = 2, .p = tmpLimbs};
 		return opabigintCopy(a, &tmpInt);
 	} else {
