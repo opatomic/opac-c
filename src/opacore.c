@@ -54,7 +54,7 @@ static int opa_vfprintf(FILE* f, const char* format, va_list ap) {
 		HANDLE h = (HANDLE) hi;
 
 		int retVal = -1;
-		int allocLen = _vscprintf(format, ap);
+		int allocLen = vsnprintf(NULL, 0, format, ap);
 		char* allocBuff = allocLen >= 0 ? OPAMALLOC(++allocLen) : NULL;
 		if (allocBuff != NULL && vsnprintf(allocBuff, allocLen, format, ap) > 0) {
 			wchar_t* wstr = NULL;
