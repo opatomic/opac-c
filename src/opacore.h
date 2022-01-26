@@ -153,19 +153,19 @@ void opacorePanic (const char* func, const char* filename, int line, const char*
 #ifdef __GNUC__
 	#if defined(_WIN32) && (((__GNUC__ == 4 && __GNUC_MINOR__>= 4) || __GNUC__ > 4))
 		#define OPA_ATTR_PRINTF      __attribute__((__format__ (gnu_printf, 1, 2)))
-		#define OPA_ATTR_PRINTF_FFLF __attribute__((__format__ (gnu_printf, 4, 5)))
+		#define OPA_ATTR_PRINTFFLF   __attribute__((__format__ (gnu_printf, 4, 5)))
 	#else
 		#define OPA_ATTR_PRINTF      __attribute__((__format__ (__printf__, 1, 2)))
-		#define OPA_ATTR_PRINTF_FFLF __attribute__((__format__ (__printf__, 4, 5)))
+		#define OPA_ATTR_PRINTFFLF   __attribute__((__format__ (__printf__, 4, 5)))
 	#endif
 #else
 	#define OPA_ATTR_PRINTF
-	#define OPA_ATTR_PRINTF_FFLF
+	#define OPA_ATTR_PRINTFFLF
 #endif
 
 #ifdef OPADBG
 void opacoreLog (const char* func, const char* filename, int line, const char* s);
-OPA_ATTR_PRINTF_FFLF
+OPA_ATTR_PRINTFFLF
 void opacoreLogf(const char* func, const char* filename, int line, const char* format, ...);
 #else
 void opacoreLog (const char* s);
@@ -173,9 +173,9 @@ OPA_ATTR_PRINTF
 void opacoreLogf(const char* format, ...);
 #endif
 
-OPA_ATTR_PRINTF_FFLF
+OPA_ATTR_PRINTFFLF
 void opacoreLogErrf(const char* func, const char* filename, int line, const char* format, ...);
-OPA_ATTR_PRINTF_FFLF
+OPA_ATTR_PRINTFFLF
 ATTR_NORETURN
 void opacorePanicf (const char* func, const char* filename, int line, const char* format, ...);
 
