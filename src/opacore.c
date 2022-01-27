@@ -96,6 +96,7 @@ static int isAscii(const char* s) {
 
 void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWORD errnum) {
 	// TODO: have FormatMessage() allocate buffer to reduce stack size required? error cases should be infrequent so performance would not be affected
+	filename = opaBasename(filename);
 	int success = 0;
 	wchar_t tmpbuff[TMPBUFFLEN];
 	if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errnum, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), tmpbuff, sizeof(tmpbuff) / sizeof(tmpbuff[0]), NULL) > 0) {
