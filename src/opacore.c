@@ -116,12 +116,10 @@ void opacoreLogWinErrCode(const char* func, const char* filename, int line, DWOR
 	}
 	if (!success) {
 		// try to log error code without allocating memory
-		if (isAscii(filename)) {
-			if (isAscii(func)) {
-				fprintf(stderr, "%s(%s:%d): win32 err %lu\n", func, filename, line, errnum);
-			} else {
-				fprintf(stderr, "(%s:%d): win32 err %lu\n", filename, line, errnum);
-			}
+		int utf8ok = !_isatty(_fileno(stderr));
+		if (utf8ok || isAscii(filename)) {
+			func = (utf8ok || isAscii(func)) ? func : "";
+			fprintf(stderr, "%s(%s:%d): win32 err %lu\n", func, filename, line, errnum);
 		} else {
 			fprintf(stderr, "win32 err %lu\n", errnum);
 		}
