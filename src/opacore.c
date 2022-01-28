@@ -46,6 +46,58 @@
 
 #ifdef _WIN32
 
+static int vsnprintf_copyva(char* buf, size_t len, const char* format, va_list ap) {
+	va_list ap2;
+	va_copy(ap2, ap);
+	int result = vsnprintf(buf, len, format, ap2);
+	va_end(ap2);
+	return result;
+}
+
+// try to print to provided buffer or allocate a new buffer if provided buffer is too small
+// return pointer to provided buffer if it's large enough; else an allocated buffer that must be free'd
+// return NULL on failure
+// this is needed for windows because win2k msvcrt/vsnprintf does not return the required buffer length
+static char* winAllocPrintf(char* buff, size_t buffLen, const char* format, va_list ap) {
+	// first try to use provided buffer to avoid allocation
+	int reqLen = vsnprintf_copyva(buff, buffLen, format, ap);
+	if (reqLen >= 0) {
+		if ((size_t) reqLen < buffLen) {
+			// success using provided buffer
+			return buff;
+		}
+		// buffer is too small but the required length was returned (not including null char)
+		buff = OPAMALLOC(++reqLen);
+		if (buff != NULL) {
+			if (vsnprintf_copyva(buff, reqLen, format, ap) == reqLen - 1) {
+				return buff;
+			}
+			OPAFREE(buff);
+		}
+		return NULL;
+	}
+
+	// vsnprintf did not return the required allocation length. Therefore it's time to brute force
+	// the length. Keep trying vsnprintf() with double the buffer size for each attempt.
+	static const size_t MAX_ALLOC = 1024 * 1024 * 16;
+	buffLen = buffLen > 0 ? buffLen : 256;
+	buff = NULL;
+	while (buffLen <= MAX_ALLOC / 2) {
+		buffLen = buffLen * 2;
+		char* newBuff = buff == NULL ? OPAMALLOC(buffLen) : OPAREALLOC(buff, buffLen);
+		if (newBuff == NULL) {
+			break;
+		}
+		buff = newBuff;
+		reqLen = vsnprintf_copyva(buff, buffLen, format, ap);
+		if (reqLen >= 0 && ((size_t)reqLen) + 1 <= buffLen) {
+			return buff;
+		}
+	}
+	OPAFREE(buff);
+	return NULL;
+}
+
 static int opa_vfprintf(FILE* f, const char* format, va_list ap) {
 	int fd = _fileno(f);
 	if (_isatty(fd)) {
@@ -54,9 +106,9 @@ static int opa_vfprintf(FILE* f, const char* format, va_list ap) {
 		HANDLE h = (HANDLE) hi;
 
 		int retVal = -1;
-		int allocLen = vsnprintf(NULL, 0, format, ap);
-		char* allocBuff = allocLen >= 0 ? OPAMALLOC(++allocLen) : NULL;
-		if (allocBuff != NULL && vsnprintf(allocBuff, allocLen, format, ap) > 0) {
+		char stackbuf[TMPBUFFLEN];
+		char* allocBuff = winAllocPrintf(stackbuf, sizeof(stackbuf), format, ap);
+		if (allocBuff != NULL) {
 			wchar_t* wstr = NULL;
 			int err = winUtf8ToWide(allocBuff, &wstr);
 			if (!err) {
@@ -69,8 +121,10 @@ static int opa_vfprintf(FILE* f, const char* format, va_list ap) {
 				}
 				OPAFREE(wstr);
 			}
+			if (allocBuff != stackbuf) {
+				OPAFREE(allocBuff);
+			}
 		}
-		OPAFREE(allocBuff);
 		return retVal;
 	} else {
 		// not logging to console - no conversion necessary
