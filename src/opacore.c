@@ -46,6 +46,7 @@
 
 #ifdef _WIN32
 
+OPA_ATTR_PRINTF(3, 0)
 static int vsnprintf_copyva(char* buf, size_t len, const char* format, va_list ap) {
 	va_list ap2;
 	va_copy(ap2, ap);
@@ -58,6 +59,7 @@ static int vsnprintf_copyva(char* buf, size_t len, const char* format, va_list a
 // return pointer to provided buffer if it's large enough; else an allocated buffer that must be free'd
 // return NULL on failure
 // this is needed for windows because win2k msvcrt/vsnprintf does not return the required buffer length
+OPA_ATTR_PRINTF(3, 0)
 static char* winAllocPrintf(char* buff, size_t buffLen, const char* format, va_list ap) {
 	// first try to use provided buffer to avoid allocation
 	int reqLen = vsnprintf_copyva(buff, buffLen, format, ap);
@@ -98,6 +100,7 @@ static char* winAllocPrintf(char* buff, size_t buffLen, const char* format, va_l
 	return NULL;
 }
 
+OPA_ATTR_PRINTF(2, 0)
 static int opa_vfprintf(FILE* f, const char* format, va_list ap) {
 	int fd = _fileno(f);
 	if (_isatty(fd)) {
@@ -198,6 +201,7 @@ void opaszmem(void* s, size_t n) {
 	(memsetFunc)(s, 0, n);
 }
 
+OPA_ATTR_PRINTF(2, 0)
 static int opa_vfprintf(FILE* f, const char* format, va_list ap) {
 	return vfprintf(f, format, ap);
 }
@@ -226,6 +230,7 @@ int opa_printf(const char* format, ...) {
 	return result;
 }
 
+OPA_ATTR_PRINTF(5, 0)
 static void opacoreLogInternal(FILE* f, const char* func, const char* filename, int line, const char* format, va_list args) {
 	char tmp[TMPBUFFLEN];
 	vsnprintf(tmp, sizeof(tmp), format, args);
