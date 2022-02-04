@@ -34,7 +34,11 @@ static void winGetRealVersionInternal(winRealVerInfo* info) {
 	// https://stackoverflow.com/questions/36543301/detecting-windows-10-version/36543774#36543774
 	HMODULE hlib = LoadLibrary("ntdll.dll");
 	if (hlib != NULL) {
-		FARPROC func = GetProcAddress(hlib, "RtlGetVersion");
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+		void* func = GetProcAddress(hlib, "RtlGetVersion");
 		if (func != NULL) {
 			RTL_OSVERSIONINFOW osinfo;
 			osinfo.dwOSVersionInfoSize = sizeof(osinfo);
@@ -45,6 +49,9 @@ static void winGetRealVersionInternal(winRealVerInfo* info) {
 				info->platform = osinfo.dwPlatformId;
 			}
 		}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 		FreeLibrary(hlib);
 	}
 }
