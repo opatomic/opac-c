@@ -43,12 +43,19 @@ static void loadFuncs(void) {
 	if (!loaded) {
 		HMODULE h = LoadLibrary("msvcrt.dll");
 		if (h != NULL) {
-			FARPROC func1 = GetProcAddress(h, "_aligned_malloc");
-			FARPROC func2 = GetProcAddress(h, "_aligned_free");
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+			void* func1 = GetProcAddress(h, "_aligned_malloc");
+			void* func2 = GetProcAddress(h, "_aligned_free");
 			if (func1 != NULL && func2 != NULL) {
 				F_AlignedMalloc = (AlignedMallocFuncType) func1;
 				F_AlignedFree = (AlignedFreeFuncType) func2;
 			}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 		}
 		loaded = 1;
 	}
