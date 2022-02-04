@@ -230,11 +230,45 @@ int opa_printf(const char* format, ...) {
 	return result;
 }
 
+static void opacoreLogInternal2(FILE* f, const char* func, const char* filename, int line, const char* msg) {
+	filename = opaBasename(filename);
+#ifdef _WIN32
+	int res = opa_fprintf(f, "%s(%s:%d): %s\n", func, filename, line, msg);
+	if (res < 0) {
+		int utf8ok = !_isatty(_fileno(f));
+		if (utf8ok || isAscii(filename)) {
+			func = (utf8ok || isAscii(func)) ? func : "";
+			fprintf(f, "%s(%s:%d): %s\n", func, filename, line, msg);
+		} else {
+			fprintf(f, "%s\n", msg);
+		}
+	}
+#else
+	fprintf(f, "%s(%s:%d): %s\n", func, filename, line, msg);
+#endif
+}
+
 OPA_ATTR_PRINTF(5, 0)
 static void opacoreLogInternal(FILE* f, const char* func, const char* filename, int line, const char* format, va_list args) {
+	filename = opaBasename(filename);
+#ifdef _WIN32
 	char tmp[TMPBUFFLEN];
-	vsnprintf(tmp, sizeof(tmp), format, args);
-	opa_fprintf(f, "%s(%s:%d): %s\n", func, opaBasename(filename), line, tmp);
+	char* allocBuff = winAllocPrintf(tmp, sizeof(tmp), format, args);
+	if (allocBuff != NULL) {
+		opacoreLogInternal2(f, func, filename, line, allocBuff);
+		if (allocBuff != tmp) {
+			OPAFREE(allocBuff);
+		}
+	} else {
+		opacoreLogInternal2(f, func, filename, line, "<winAllocPrintf() failed>");
+	}
+#else
+	flockfile(f);
+	fprintf(f, "%s(%s:%d): ", func, filename, line);
+	vfprintf(f, format, args);
+	fputc('\n', f);
+	funlockfile(f);
+#endif
 }
 
 #ifdef OPADBG
@@ -257,24 +291,28 @@ void opacoreLogErrf(const char* func, const char* filename, int line, const char
 	va_end(args);
 }
 
-ATTR_NORETURN void opacorePanicf(const char* func, const char* filename, int line, const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-	opacoreLogInternal(stderr, func, filename, line, format, args);
-	va_end(args);
-
+ATTR_NORETURN static void opacorePanicInternal(void) {
 	// TODO*: make sure all data is written before exiting from panic!
 	*((char*)-1) = 'x';
 	//exit(EXIT_FAILURE);
 	abort();
 }
 
+ATTR_NORETURN void opacorePanicf(const char* func, const char* filename, int line, const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	opacoreLogInternal(stderr, func, filename, line, format, args);
+	va_end(args);
+	opacorePanicInternal();
+}
+
 void opacoreLogErr(const char* func, const char* filename, int line, const char* s) {
-	opacoreLogErrf(func, filename, line, "%s", s);
+	opacoreLogInternal2(stderr, func, filename, line, s);
 }
 
 ATTR_NORETURN void opacorePanic(const char* func, const char* filename, int line, const char* s) {
-	opacorePanicf(func, filename, line, "%s", s);
+	opacoreLogInternal2(stderr, func, filename, line, s);
+	opacorePanicInternal();
 }
 
 void opacoreLogStrerr(const char* func, const char* filename, int line, int errnum) {
