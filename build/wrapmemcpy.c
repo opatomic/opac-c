@@ -1,4 +1,4 @@
-#if defined(__linux__)
+#if defined(__GNUC__) && defined(__linux__)
 
 #include <stddef.h>
 #include <string.h>
