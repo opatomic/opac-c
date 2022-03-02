@@ -34,7 +34,7 @@ else
 fi
 
 testgccopt() {
-	($CC -E -Werror "$1" - < /dev/null > /dev/null 2>&1 && echo "$1") || echo ""
+	$CC -E -Werror "$1" - < /dev/null > /dev/null 2>&1 && echo "$1" || echo ""
 }
 
 GCCWARN="-Wall -Wextra"
@@ -65,30 +65,30 @@ fi
 # $2 is destination directory for .o file
 buildcfile() {
 	FNAME=$(basename "$1" .c)
-	# cd to directory containing .c file so that __FILE__ does not contain directories
-	ORIGDIR=$(pwd)
-	cd "$(dirname "$1")" || exit 1
-	if [ "$3" != "MP" ]; then
-		echo "building $FNAME.c"
+	DSTDIR=$( cd "$2" && pwd ) || exit 1
+	if [ "$PBFN" = "" ]; then
+		# cd to directory containing .c file so that __FILE__ does not contain directories
+		ORIGDIR="$PWD"
+		cd "$(dirname "$1")" || exit 1
+		if [ "$3" != "MP" ]; then
+			echo "building $FNAME.c"
+		fi
+		$CCACHE $CC -c $GCCWARN $DEFS $INCS $CFLAGS -o "$DSTDIR/$FNAME.o" "$FNAME.c" || exit 1
+		if [ "$3" = "MP" ]; then
+			echo "built $FNAME.c"
+		fi
+		cd "$ORIGDIR" || exit 1
+	else
+		dirname "$1" >> "$PBFN"
+		echo "$CCACHE $CC -c $GCCWARN $DEFS $INCS $CFLAGS -o \"$DSTDIR/$FNAME.o\" \"$FNAME.c\"" >> "$PBFN"
+		echo "pbuilt $FNAME.c" >> "$PBFN"
 	fi
-	$CCACHE $CC -c $GCCWARN $DEFS $INCS $CFLAGS -o "$2/$FNAME.o" "$FNAME.c" || exit 1
-	if [ "$3" = "MP" ]; then
-		echo "built $FNAME.c"
-	fi
-	cd "$ORIGDIR" || exit 1
 }
-
-#function buildcfile {
-#	if [ "$(jobs -p | wc -l)" -ge $NPROC ]; then
-#		wait -n
-#	fi
-#	buildcfile2 $1 $2 "MP" &
-#}
 
 # $1 is directory of .c files to build
 # $2 is destination dir
 builddir() {
-	if [ "$BUILDDIR_MP" -gt 1 ]; then
+	if [ "$PBFN" = "" ] && [ "$BUILDDIR_MP" -gt 1 ]; then
 		idx=0
 		for fname in "$1"/*.c; do
 			idx=$((idx+1))
@@ -109,6 +109,13 @@ builddir() {
 		for i in "$1"/*.c; do
 			buildcfile "$i" "$2"
 		done
+	fi
+}
+
+pbuild() {
+	if [ "$PBFN" != "" ]; then
+		"$UTILDIR/parallel" < "$PBFN"
+		rm "$PBFN"
 	fi
 }
 
