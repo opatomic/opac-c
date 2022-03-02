@@ -114,7 +114,7 @@ builddir() {
 
 pbuild() {
 	if [ "$PBFN" != "" ]; then
-		"$UTILDIR/parallel" < "$PBFN"
+		"$UTILDIR/parallel" < "$PBFN" || exit 1
 		rm "$PBFN"
 	fi
 }
