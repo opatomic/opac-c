@@ -49,7 +49,7 @@ fi
 INCS="-I. -I../deps/libtommath"
 DEFS="-DOPAC_VERSION=\"$(./verget)\""
 
-ensuredir "$OUTDIR"
+mkdir -p "$OUTDIR"
 cleandir "$TMPDIR"
 builddir "../src" "$TMPDIR"
 CFLAGS="$CFLAGS $(testgccopt -fno-lto)"

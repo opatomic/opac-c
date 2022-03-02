@@ -129,9 +129,3 @@ cleandir() {
 	deldir "$1"
 	mkdir "$1"
 }
-
-ensuredir() {
-	if [ ! -d "$1" ]; then
-		mkdir "$1"
-	fi
-}
