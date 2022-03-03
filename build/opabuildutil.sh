@@ -34,27 +34,17 @@ else
 fi
 
 testgccopt() {
-	$CC -E -Werror "$1" - < /dev/null > /dev/null 2>&1 && echo "$1" || echo ""
+	if $CC -E -Werror $@ - < /dev/null > /dev/null 2>&1 ; then
+		echo "$@"
+	else
+		for i in "$@"; do
+			$CC -E -Werror "$i" - < /dev/null > /dev/null 2>&1 && echo "$i"
+		done
+	fi
 }
 
-GCCWARN="-Wall -Wextra"
-GCCWARN="$GCCWARN $(testgccopt -Wpedantic)"
-GCCWARN="$GCCWARN $(testgccopt -Wshadow)"
-GCCWARN="$GCCWARN $(testgccopt -Wmissing-prototypes)"
-GCCWARN="$GCCWARN $(testgccopt -Wstrict-prototypes)"
-GCCWARN="$GCCWARN $(testgccopt -Wbad-function-cast)"
-GCCWARN="$GCCWARN $(testgccopt -Wcast-align)"
-GCCWARN="$GCCWARN $(testgccopt -Wno-missing-field-initializers)"
-
 # additional warnings from https://kristerw.blogspot.com/2017/09/useful-gcc-warning-options-not-enabled.html
-GCCWARN="$GCCWARN $(testgccopt -Wduplicated-cond)"
-GCCWARN="$GCCWARN $(testgccopt -Wduplicated-branches)"
-#GCCWARN="$GCCWARN $(testgccopt -Wlogical-op)"
-GCCWARN="$GCCWARN $(testgccopt -Wrestrict)"
-GCCWARN="$GCCWARN $(testgccopt -Wnull-dereference)"
-GCCWARN="$GCCWARN $(testgccopt -Wjump-misses-init)"
-GCCWARN="$GCCWARN $(testgccopt -Wdouble-promotion)"
-GCCWARN="$GCCWARN $(testgccopt -Wformat=2)"
+GCCWARN="$(testgccopt -Wall -Wextra -Wpedantic -Wshadow -Wmissing-prototypes -Wstrict-prototypes -Wbad-function-cast -Wcast-align -Wno-missing-field-initializers -Wduplicated-cond -Wduplicated-branches -Wrestrict -Wnull-dereference -Wjump-misses-init -Wdouble-promotion -Wformat=2)"
 
 STRIPALLFLAG="-s"
 if [ "$UNAME" = "darwin" ]; then
