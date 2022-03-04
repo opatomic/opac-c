@@ -25,7 +25,7 @@
 
 . ./opabuildutil.sh
 
-TMPDIR="$PWD/tmp"
+OTMPDIR="$PWD/tmp"
 OUTDIR="$PWD/out"
 
 CFLAGS="-std=c99 -O2 -g $CFLAGS"
@@ -50,11 +50,11 @@ INCS="-I. -I../deps/libtommath"
 DEFS="-DOPAC_VERSION=\"$(./verget)\""
 
 mkdir -p "$OUTDIR"
-cleandir "$TMPDIR"
-builddir "../src" "$TMPDIR"
+cleandir "$OTMPDIR"
+builddir "../src" "$OTMPDIR"
 CFLAGS="$CFLAGS $(testgccopt -fno-lto)"
-buildcfile wrapmemcpy.c "$TMPDIR"
+buildcfile wrapmemcpy.c "$OTMPDIR"
 rm -f "$OUTDIR/libopac.a"
-$AR $ARFLAGS "$OUTDIR/libopac.a" "$TMPDIR"/*.o
-deldir "$TMPDIR"
+$AR $ARFLAGS "$OUTDIR/libopac.a" "$OTMPDIR"/*.o
+deldir "$OTMPDIR"
 
