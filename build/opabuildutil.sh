@@ -37,9 +37,11 @@ testgccopt() {
 	if $CC -E -Werror $@ - < /dev/null > /dev/null 2>&1 ; then
 		echo "$@"
 	else
+		RES=""
 		for i in "$@"; do
-			$CC -E -Werror "$i" - < /dev/null > /dev/null 2>&1 && echo "$i"
+			$CC -E -Werror "$i" - < /dev/null > /dev/null 2>&1 && RES="$RES $i"
 		done
+		echo "$RES"
 	fi
 }
 
