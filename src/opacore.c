@@ -567,9 +567,7 @@ const uint8_t* opaFindInvalidUtf8(const uint8_t* s, size_t len) {
 			if ((s[1] & 0xc0) != 0x80 ||
 				(s[2] & 0xc0) != 0x80 ||
 				(s[0] == 0xe0 && (s[1] & 0xe0) == 0x80) ||  // overlong?
-				(s[0] == 0xed && (s[1] & 0xe0) == 0xa0) ||  // surrogate?
-				(s[0] == 0xef && s[1] == 0xbf &&
-				(s[2] & 0xfe) == 0xbe)) {                   // U+FFFE or U+FFFF?
+				(s[0] == 0xed && (s[1] & 0xe0) == 0xa0)) {  // surrogate?
 				return s;
 			}
 			s += 3;
