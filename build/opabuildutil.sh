@@ -46,7 +46,7 @@ testgccopt() {
 }
 
 # additional warnings from https://kristerw.blogspot.com/2017/09/useful-gcc-warning-options-not-enabled.html
-GCCWARN="$(testgccopt -Wall -Wextra -Wpedantic -Wshadow -Wmissing-prototypes -Wstrict-prototypes -Wbad-function-cast -Wcast-align -Wno-missing-field-initializers -Wduplicated-cond -Wduplicated-branches -Wrestrict -Wnull-dereference -Wjump-misses-init -Wdouble-promotion -Wformat=2)"
+GCCWARN="$(testgccopt -Wall -Wextra -Wpedantic -Wshadow -Wmissing-prototypes -Wstrict-prototypes -Wbad-function-cast -Wcast-align -Wno-missing-field-initializers -Wduplicated-cond -Wduplicated-branches -Wrestrict -Wnull-dereference -Wjump-misses-init -Wdouble-promotion -Wformat=2 -Wdate-time)"
 
 STRIPALLFLAG="-s"
 if [ "$UNAME" = "darwin" ]; then
