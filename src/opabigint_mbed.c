@@ -71,7 +71,7 @@ uint64_t opabigintGetMagU64(const opabigint* a) {
 			return 0;
 		}
 	} else {
-		OPAPANICF("unsupported size %zu for mbedtls_mpi_uint", sizeof(mbedtls_mpi_uint));
+		OPAPANICF("unsupported size %" OPA_FMT_ZU " for mbedtls_mpi_uint", sizeof(mbedtls_mpi_uint));
 	}
 }
 
@@ -142,7 +142,7 @@ int opabigintSetU64(opabigint* a, uint64_t val) {
 		mbedtls_mpi tmpInt = {.s = 1, .n = 2, .p = tmpLimbs};
 		return opabigintCopy(a, &tmpInt);
 	} else {
-		OPAPANICF("unsupported size %zu for mbedtls_mpi_uint", sizeof(mbedtls_mpi_uint));
+		OPAPANICF("unsupported size %" OPA_FMT_ZU " for mbedtls_mpi_uint", sizeof(mbedtls_mpi_uint));
 	}
 
 	//val = htobe64(val);
