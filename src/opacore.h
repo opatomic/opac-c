@@ -152,13 +152,23 @@ ATTR_NORETURN
 void opacorePanic (const char* func, const char* filename, int line, const char* s);
 
 #ifdef __GNUC__
-#if defined(_WIN32) && (((__GNUC__ == 4 && __GNUC_MINOR__>= 4) || __GNUC__ > 4))
+#if defined(_WIN32) && (!defined(__USE_MINGW_ANSI_STDIO) || !__USE_MINGW_ANSI_STDIO)
+#define OPA_ATTR_PRINTF(a, b)  __attribute__((__format__ (ms_printf, (a), (b))))
+#elif defined(_WIN32) && (((__GNUC__ == 4 && __GNUC_MINOR__>= 4) || __GNUC__ > 4))
 #define OPA_ATTR_PRINTF(a, b)  __attribute__((__format__ (gnu_printf, (a), (b))))
 #else
 #define OPA_ATTR_PRINTF(a, b)  __attribute__((__format__ (__printf__, (a), (b))))
 #endif
 #else
 #define OPA_ATTR_PRINTF(a, b)
+#endif
+
+#if defined(_WIN32) && (!defined(__GNUC__) || !defined(__USE_MINGW_ANSI_STDIO) || !__USE_MINGW_ANSI_STDIO)
+#define OPA_FMT_ZU "Iu"
+#define OPA_FMT_ZD "Id"
+#else
+#define OPA_FMT_ZU "zu"
+#define OPA_FMT_ZD "zd"
 #endif
 
 #ifdef OPADBG
