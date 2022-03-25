@@ -21,6 +21,7 @@
 	#define OPA_DIRCHAR '/'
 #endif
 
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,6 +227,29 @@ int opa_printf(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
 	int result = opa_vfprintf(stdout, format, args);
+	va_end(args);
+	return result;
+}
+
+static int opa_vsnprintf(char* buff, size_t buffLen, const char* format, va_list args) {
+	int result = -1;
+	if (format != NULL && buffLen <= (size_t)INT_MAX) {
+		result = vsnprintf(buff, buffLen, format, args);
+	}
+	if (buff != NULL && buffLen > 0) {
+		if (result < 0) {
+			buff[0] = 0;
+		} else if ((size_t)result >= buffLen) {
+			buff[buffLen - 1] = 0;
+		}
+	}
+	return result;
+}
+
+int opa_snprintf(char* buff, size_t buffLen, const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	int result = opa_vsnprintf(buff, buffLen, format, args);
 	va_end(args);
 	return result;
 }

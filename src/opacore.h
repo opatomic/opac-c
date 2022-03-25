@@ -190,6 +190,8 @@ OPA_ATTR_PRINTF(2, 3)
 int opa_fprintf(FILE* f, const char* format, ...);
 OPA_ATTR_PRINTF(1, 2)
 int opa_printf(const char* format, ...);
+OPA_ATTR_PRINTF(3, 4)
+int opa_snprintf(char* buff, size_t buffLen, const char* format, ...);
 
 #ifdef _WIN32
 #define opaszmem SecureZeroMemory
