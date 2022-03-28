@@ -14,41 +14,20 @@ jobs:
       working-directory: build
       run: |
         ./build
-        OPABIGINT_LIB=GMP ./build
         CFLAGS="-DOPA_NOTHREADS" ./build
 
-  build-linux-i686:
+  build-cross:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - name: Install deps
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-multilib
+        sudo apt-get install -y gcc-multilib mingw-w64 libgmp3-dev
     - name: build
       working-directory: build
-      run: CFLAGS="-march=i686 -m32" LDFLAGS="-march=i686 -m32" ./build
-
-  build-mingw-win32:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - name: Install deps
       run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc-multilib mingw-w64
-    - name: build
-      working-directory: build
-      run: CC=i686-w64-mingw32-gcc AR=i686-w64-mingw32-ar TGTOS=win ./build
-
-  build-mingw-win64:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - name: Install deps
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc-multilib mingw-w64
-    - name: build
-      working-directory: build
-      run: CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar TGTOS=win ./build
+        OPABIGINT_LIB=GMP ./build
+        CFLAGS="-march=i686 -m32" LDFLAGS="-march=i686 -m32" ./build
+        CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar ./build
+        CC=i686-w64-mingw32-gcc AR=i686-w64-mingw32-ar ./build
