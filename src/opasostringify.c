@@ -1,3 +1,8 @@
+/*
+ * Copyright Opatomic
+ * Open sourced with ISC license. Refer to LICENSE for details.
+ */
+
 #include <string.h>
 
 #include "opabigdec.h"
