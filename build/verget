@@ -5,7 +5,8 @@
 VERSION=$(git describe --tags --always 2> /dev/null)
 if [ "$?" = "0" ]; then
 	# note: git describe --dirty flag does not include untracked new files
-	[ "$(git status --porcelain | wc -l)" != "0" ] && VERSION="$VERSION-dirty"
+	# note: wc -l will prefix string with spaces on macos; must echo to trim whitespace
+	[ "$(echo $(git status --porcelain | wc -l))" != "0" ] && VERSION="$VERSION-dirty"
 	echo "$VERSION"
 	exit
 fi
