@@ -47,7 +47,7 @@ fi
 
 
 INCS="-I. -I../deps/libtommath"
-DEFS="-DOPAC_VERSION=\"$(./verget)\""
+DEFS="-DOPAC_VERSION=$(./verget)"
 
 mkdir -p "$OUTDIR"
 cleandir "$OTMPDIR"
