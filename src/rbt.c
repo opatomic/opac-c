@@ -212,6 +212,11 @@ struct rbt_node *rbt_insert(struct rbt *t, const void *key,
 
 		if (!r) {
 			*n = *c;
+			*nptr = n;
+			if (n->left)
+				n->left->parent = n;
+			if (n->right)
+				n->right->parent = n;
 			return c;
 		}
 
