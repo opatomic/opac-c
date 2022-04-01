@@ -231,6 +231,7 @@ int opa_printf(const char* format, ...) {
 	return result;
 }
 
+OPA_ATTR_PRINTF(3, 0)
 static int opa_vsnprintf(char* buff, size_t buffLen, const char* format, va_list args) {
 	int result = -1;
 	if (format != NULL && buffLen <= (size_t)INT_MAX) {
