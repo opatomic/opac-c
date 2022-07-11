@@ -446,7 +446,7 @@ size_t opabigdecStoreSO(const opabigdec* val, uint8_t* buff, size_t buffLen) {
 		return 1;
 	}
 
-	if (opabigdecIsZero(val)) {
+	if (val->exponent == 0 && opabigdecIsZero(val)) {
 		if (buffLen > 0) {
 			*buff = OPADEF_ZERO;
 		}

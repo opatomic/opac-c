@@ -273,16 +273,9 @@ static int opappFindEndInternal(opapp* rc, const uint8_t* buff, size_t len, cons
 			rc->state = OPAPP_S_VARINT2;
 			goto ReturnOK;
 		}
-		if (rc->varintLen >= 9 || *buff == 0) {
+		if (rc->varintLen >= 9 || (*buff == 0 && rc->varintLen > 0)) {
 			// varint must be encoded with 1-9 bytes
 			// varint cannot have 0 prefix (last byte cannot be zero for multi-byte varint)
-			// varint cannot encode 0; unnecessary because there's other types that can be used to encode every value in fewer bytes
-			//   0-len str -> use empty-str instead
-			//   0-len bin -> use empty-bin instead
-			//   0 varint -> use 0 instead
-			//   0-len bigint -> use 0 instead
-			//   0-exp vardec -> use varint instead
-			//   0-exp bigdec -> use bigint instead
 			goto ReturnParseErr;
 		}
 		rc->varintVal |= (((uint64_t)(*buff & 0x7F)) << (rc->varintLen * 7));
@@ -312,17 +305,16 @@ static int opappFindEndInternal(opapp* rc, const uint8_t* buff, size_t len, cons
 	}
 
 	CheckBigIntBytes: {
-		OASSERT(rc->varintVal != 0);
-		if (rc->varintVal > opt->maxBigIntLen) {
-			// bigint or bigdec significand is too long
+		if (rc->varintVal == 0 || rc->varintVal > opt->maxBigIntLen) {
+			// bigint or bigdec significand has a byte-len of 0 (byte-len must be >0) or is too long
 			goto ReturnParseErr;
 		}
 		if (buff + 1 > end) {
 			OASSERT(rc->state == OPAPP_S_CHECKBIBYTES);
 			goto ReturnOK;
 		}
-		if (*buff == 0) {
-			// MSB cannot be 0
+		if (*buff == 0 && rc->varintVal > 1) {
+			// MSB cannot be 0 if byte-len is >1
 			goto ReturnParseErr;
 		}
 		goto SkipBytes;
