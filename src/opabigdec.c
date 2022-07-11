@@ -182,7 +182,7 @@ static int opabigdecAddInternal(opabigdec* result, const opabigdec* a, const opa
 	OASSERT(a->exponent == b->exponent);
 	int err = opabigintAdd(&result->significand, &a->significand, &b->significand);
 	if (!err) {
-		result->exponent = opabigdecIsZero(result) ? 0 : a->exponent;
+		result->exponent = a->exponent;
 	}
 	return err;
 }
@@ -193,10 +193,6 @@ int opabigdecAdd(opabigdec* result, const opabigdec* a, const opabigdec* b) {
 			return OPA_ERR_OVERFLOW;
 		}
 		return opabigdecSetInf(result, a->inf ? a->inf : b->inf);
-	} else if (opabigdecIsZero(a)) {
-		return opabigdecCopy(result, b);
-	} else if (opabigdecIsZero(b)) {
-		return opabigdecCopy(result, a);
 	} else if (a->exponent == b->exponent) {
 		return opabigdecAddInternal(result, a, b);
 	} else if (a->exponent > b->exponent) {
@@ -226,7 +222,7 @@ static int opabigdecSubInternal(opabigdec* result, const opabigdec* a, const opa
 	OASSERT(a->exponent == b->exponent);
 	int err = opabigintSub(&result->significand, &a->significand, &b->significand);
 	if (!err) {
-		result->exponent = opabigdecIsZero(result) ? 0 : a->exponent;
+		result->exponent = a->exponent;
 	}
 	return err;
 }
@@ -273,7 +269,7 @@ static int opabigdecMulInternal(opabigdec* result, const opabigdec* a, const opa
 	OASSERT(a->exponent == b->exponent);
 	int err = opabigintMul(&result->significand, &a->significand, &b->significand);
 	if (!err) {
-		result->exponent = opabigdecIsZero(result) ? 0 : a->exponent + b->exponent;
+		result->exponent = a->exponent + b->exponent;
 	}
 	return err;
 }
@@ -319,7 +315,7 @@ static int opabigdecImport3(opabigdec* bd, const uint8_t* src, size_t numBytes, 
 		err = opabigdecNegate(bd, bd);
 	}
 	if (!err) {
-		bd->exponent = opabigdecIsZero(bd) ? 0 : exponent;
+		bd->exponent = exponent;
 	}
 	return err;
 }
@@ -578,14 +574,8 @@ int opabigdecFromStr(opabigdec* v, const char* str, const char* end, int radix) 
 		v->exponent = (int32_t) newVal;
 	}
 
-	if (!err) {
-		if (opabigdecIsZero(v)) {
-			v->exponent = 0;
-		} else {
-			if (neg) {
-				err = opabigdecNegate(v, v);
-			}
-		}
+	if (neg && !err) {
+		err = opabigdecNegate(v, v);
 	}
 
 	return err;
