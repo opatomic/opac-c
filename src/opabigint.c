@@ -30,7 +30,7 @@ static int opabigintToRadix10(const opabigint* a, char* str, size_t space, size_
 	}
 
 	char* pos = str;
-	char* stop = str + space - 1;
+	char* stop = str + space;
 
 	if (opabigintIsNeg(a) && pos < stop) {
 		*pos++ = '-';
@@ -93,6 +93,10 @@ static int opabigintToRadix10(const opabigint* a, char* str, size_t space, size_
 		}
 	}
 
+	if (pos >= stop) {
+		return OPA_ERR_INVARG;
+	}
+
 	revdigs(digStart, pos - digStart);
 
 	*pos++ = 0;
@@ -115,7 +119,7 @@ int opabigintToRadix(const opabigint* a, char* str, size_t space, size_t* pNumWr
 	const char* const radixChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/";
 
 	char* pos = str;
-	char* stop = str + space - 1;
+	char* stop = str + space;
 
 	if (opabigintIsNeg(a) && pos < stop) {
 		*pos++ = '-';
@@ -155,6 +159,10 @@ int opabigintToRadix(const opabigint* a, char* str, size_t space, size_t* pNumWr
 				break;
 			}
 		}
+	}
+
+	if (pos >= stop) {
+		return OPA_ERR_INVARG;
 	}
 
 	revdigs(digStart, pos - digStart);
