@@ -16,10 +16,6 @@
 
 #define OPABIGDEC_BIGENDIAN 1
 
-#ifndef OPABIGDEC_MAXSTRZS
-#define OPABIGDEC_MAXSTRZS 6
-#endif
-
 #define OPABIGDEC_NEGINF -1
 #define OPABIGDEC_POSINF 1
 
@@ -614,20 +610,15 @@ size_t opabigdecMaxStringLen(const opabigdec* a, int radix) {
 		++chars;
 	}
 	if (a->exponent != 0) {
-		// extra char for 'E'
-		++chars;
-		if (a->exponent < 0) {
-			// extra char for exponent sign
-			++chars;
-		}
+		// 2 extra chars for "E+" or "E-"
+		chars += 2;
 		int32_t currExp = a->exponent;
-		while (currExp != 0) {
+		do {
 			++chars;
 			currExp = currExp / radix;
-		}
-
-		// account for possible prefix or suffix
-		chars += 2 + OPABIGDEC_MAXSTRZS;
+		} while (currExp != 0);
+		// account for possible prefix "0." + 0's or just "."
+		chars += 2 + 5;
 	}
 	// extra char for null
 	++chars;
@@ -644,39 +635,20 @@ static void opabigdecReverseStr(char* s, size_t len) {
 	}
 }
 
-static void opabigDecAppendExp(int32_t exp, char radix, char* str, size_t maxLen) {
-	OASSERT(maxLen > 0);
+static size_t opabigDecExpToRadix(uint64_t exp, char radix, char* str) {
+	char* pos = str;
+	do {
+		char digit = exp % radix;
+		exp = exp / radix;
+		*pos++ = '0' + digit;
+	} while (exp > 0);
 
-	if (maxLen > 1) {
-		*str++ = 'E';
-		--maxLen;
-	}
+	opabigdecReverseStr(str, pos - str);
+	*pos = 0;
 
-	uint32_t currVal;
-	if (exp >= 0) {
-		currVal = exp;
-	} else {
-		currVal = 0 - exp;
-		if (maxLen > 1) {
-			*str++ = '-';
-			--maxLen;
-		}
-	}
-
-	char* strStart = str;
-	while (currVal > 0 && maxLen > 1) {
-		char digit = currVal % radix;
-		currVal = currVal / radix;
-		*str++ = '0' + digit;
-		--maxLen;
-	}
-
-	opabigdecReverseStr(strStart, str - strStart);
-
-	*str = 0;
+	return pos - str;
 }
 
-// basic test: ECHO [210e-10 210e-9 210e-8 210e-7 210e-6 210e-5 210e-4 210e-3 210e-2 210e-1 210e0 210e1 210e2 210e3 210e4 210e5 210e6 210e7 210e8 210e9 210e10]
 int opabigdecToString(const opabigdec* a, char* str, size_t space, size_t* pWritten, int radix) {
 	if (radix < 2 || radix > 10 || space <= 1) {
 		// only support up to base 10 for now. cannot mix hex chars with e/E exponent separator
@@ -686,86 +658,110 @@ int opabigdecToString(const opabigdec* a, char* str, size_t space, size_t* pWrit
 
 	if (a->inf) {
 		const char* infStr = a->inf == OPABIGDEC_NEGINF ? "-inf" : "inf";
-		size_t infStrLen = strlen(infStr);
-		size_t numToCopy = space - 1 < infStrLen ? space - 1 : infStrLen;
-		memcpy(str, infStr, numToCopy);
-		str[numToCopy] = 0;
+		size_t infStrLen = a->inf == OPABIGDEC_NEGINF ? 5 : 4;
+		if (str != NULL) {
+			if (space < infStrLen) {
+				return OPA_ERR_INVARG;
+			}
+			memcpy(str, infStr, infStrLen);
+		}
 		if (pWritten != NULL) {
-			*pWritten = numToCopy + 1;
+			*pWritten = infStrLen;
 		}
 		return 0;
 	}
 
-	size_t strBytes;
-	char* _s = str;
-	int err = opabigintToRadix(&a->significand, str, space, &strBytes, radix);
+	size_t totUsedBytes;
+	int err = opabigintToRadix(&a->significand, str, space, &totUsedBytes, radix);
 
 	if (!err && a->exponent != 0) {
-		// skip past the chars that were already written
-		size_t slen = strBytes > 0 ? strBytes - 1 : 0;
-		if (slen > 0 && str[0] == '-') {
-			++str;
-			--slen;
-			--space;
-		}
-		OASSERT(slen > 0 && space > slen);
-
-		if (a->exponent > 0) {
-			if (a->exponent <= OPABIGDEC_MAXSTRZS) {
-				// append 0's
-				for (int32_t i = 0; i < a->exponent && slen + 2 <= space; ++i, ++slen) {
-					str[slen] = '0';
-				}
-				str[slen] = 0;
-			} else {
-				// do not append lots of 0's; use E
-				opabigDecAppendExp(a->exponent, radix, str + slen, space - slen);
+		size_t digitsLen; // number of digit bytes, not including null char
+		char* digitsStart = str;
+		if (opabigdecIsNeg(a)) {
+			OASSERT(totUsedBytes > 1);
+			digitsLen = totUsedBytes - 2;
+			if (str != NULL) {
+				// skip past the neg sign
+				++digitsStart;
 			}
 		} else {
-			size_t digsAfterDec = 0 - a->exponent;
+			OASSERT(totUsedBytes > 0);
+			digitsLen = totUsedBytes - 1;
+		}
 
-			if (digsAfterDec >= slen + OPABIGDEC_MAXSTRZS) {
-				// do not prepend lots of 0's; use E
-				opabigDecAppendExp(a->exponent, radix, str + slen, space - slen);
-			} else {
-				// remove any trailing 0's
-				for (; digsAfterDec > 0 && slen > 1 && str[slen - 1] == '0'; --slen, --digsAfterDec) {
-					str[slen - 1] = 0;
+		int64_t e = a->exponent;
+		int64_t adjustedExp = e + digitsLen - 1;
+		if (e < 0 && adjustedExp >= -6) {
+			// convert to character form without exponent
+			if (adjustedExp >= 0) {
+				if (space < totUsedBytes + 1) {
+					return OPA_ERR_INVARG;
 				}
-
-				if (digsAfterDec >= slen) {
-					// prepend 0. + 0's
-					size_t extra = 2 + digsAfterDec - slen;
-					if (extra > space - 1) {
-						extra = space - 1;
+				if (str != NULL) {
+					char* insertPos = digitsStart + digitsLen + e;
+					memmove(insertPos + 1, insertPos, str + totUsedBytes - insertPos);
+					*insertPos = '.';
+				}
+				++totUsedBytes;
+			} else {
+				size_t prefixZs = 0 - adjustedExp - 1;
+				// 2 bytes for "0."; prefixZs bytes for 0's after '.'; 1 byte for null at end (digitsLen does not include null)
+				if (space < digitsLen + 2 + prefixZs + 1) {
+					return OPA_ERR_INVARG;
+				}
+				totUsedBytes += 2 + prefixZs;
+				if (str != NULL) {
+					memmove(digitsStart + 2 + prefixZs, digitsStart, digitsLen + 1);
+					*digitsStart++ = '0';
+					*digitsStart++ = '.';
+					for (; prefixZs > 0; --prefixZs) {
+						*digitsStart++ = '0';
 					}
-					if (extra + slen + 1 > space) {
-						slen = space - extra - 1;
-					}
-					memmove(str + extra, str, slen);
-
-					for (size_t i = 0; i < extra; ++i) {
-						str[i] = i == 1 ? '.' : '0';
-					}
-
-					str[extra + slen] = 0;
-				} else if (digsAfterDec > 0) {
-					// insert '.'
-					char* decPos = str + slen - digsAfterDec;
-					if (slen + 2 >= space) {
-						--digsAfterDec;
-					}
-					memmove(decPos + 1, decPos, digsAfterDec + 1);
-					*decPos = '.';
 				}
 			}
+			e = 0;
+		} else {
+			// fall back to exponential notation
+			e = adjustedExp;
+			if (digitsLen > 1) {
+				if (space < totUsedBytes + 1) {
+					return OPA_ERR_INVARG;
+				}
+				if (str != NULL) {
+					// insert '.' after 1st digit
+					char* insertPos = digitsStart + 1;
+					memmove(insertPos + 1, insertPos, str + totUsedBytes - insertPos);
+					*insertPos = '.';
+				}
+				++totUsedBytes;
+			}
+		}
+		if (e != 0) {
+			char tmpBuff[24];
+			tmpBuff[0] = 'E';
+			tmpBuff[1] = e < 0 ? '-' : '+';
+			size_t expLen = opabigDecExpToRadix(e < 0 ? ((int64_t)0) - e : e, radix, tmpBuff + 2) + 2;
+			OASSERT(tmpBuff[expLen] == 0);
+			if (space < totUsedBytes + expLen) {
+				return OPA_ERR_INVARG;
+			}
+			if (str != NULL) {
+				memcpy(str + totUsedBytes - 1, tmpBuff, expLen + 1);
+			}
+			totUsedBytes += expLen;
 		}
 	}
 
 	if (pWritten != NULL && !err) {
-		// TODO: don't call strlen here (optimization)
-		*pWritten = strlen(_s) + 1;
+		*pWritten = totUsedBytes;
 	}
+
+#ifdef OPADBG
+	if (!err) {
+		OASSERT(str == NULL || totUsedBytes == strlen(str) + 1);
+		OASSERT(pWritten == NULL || opabigdecMaxStringLen(a, radix) >= *pWritten);
+	}
+#endif
 
 	return err;
 }
