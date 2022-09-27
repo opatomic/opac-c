@@ -6,6 +6,8 @@
 #ifdef __linux__
 #define _POSIX_C_SOURCE 200808L // ftello fseeko
 #define _GNU_SOURCE             // strerror_r
+#elif defined __unix__
+#define _POSIX_C_SOURCE 200808L // ftello fseeko
 #endif
 
 #ifdef _WIN32
@@ -317,6 +319,7 @@ void opacoreLogErrf(const char* func, const char* filename, int line, const char
 }
 
 ATTR_NORETURN static void opacorePanicInternal(void) {
+	// TODO: use abort instead? avoid signal handler? print stack trace? https://github.com/redis/redis/pull/7585
 	// TODO*: make sure all data is written before exiting from panic!
 	*((char*)-1) = 'x';
 	//exit(EXIT_FAILURE);
