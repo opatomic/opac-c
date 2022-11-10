@@ -422,7 +422,7 @@ static const char* oparbFindTokenEnd(const char* str) {
 	}
 }
 
-static oparb oparbParseUserCommandWithId(const char* s, const uint8_t* id, size_t idLen) {
+oparb oparbParseUserCommandWithId(const char* s, const uint8_t* id, size_t idLen) {
 	oparb rb;
 	oparbInit(&rb, id, idLen);
 	int depth = 0;

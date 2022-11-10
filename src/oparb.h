@@ -37,6 +37,7 @@ void oparbFinish(oparb* rb);
  *   ECHO [arg1[]arg3] -> [null,"ECHO",["arg1",[],"arg3"]]
  */
 oparb oparbParseUserCommand(const char* s);
+oparb oparbParseUserCommandWithId(const char* s, const uint8_t* id, size_t idLen);
 
 
 #endif
