@@ -17,10 +17,8 @@
 	//   _lock_file and _unlock_file exist but may not be supported in older versions of windows?
 	//#define flockfile _lock_file
 	//#define funlockfile _unlock_file
-	#define OPA_DIRCHAR '\\'
 #else
 	#include <sys/time.h>
-	#define OPA_DIRCHAR '/'
 #endif
 
 #include <limits.h>
@@ -213,8 +211,17 @@ static int opa_vfprintf(FILE* f, const char* format, va_list ap) {
 
 
 const char* opaBasename(const char* file) {
-	const char* pos = strrchr(file, OPA_DIRCHAR);
+#ifdef _WIN32
+	const char* pos = strrchr(file, '/');
+	const char* pos2 = strrchr(file, '\\');
+	if (pos2 != NULL && (pos == NULL || pos2 > pos)) {
+		pos = pos2;
+	}
 	return pos == NULL ? file : pos + 1;
+#else
+	const char* pos = strrchr(file, '/');
+	return pos == NULL ? file : pos + 1;
+#endif
 }
 
 int opa_fprintf(FILE* f, const char* format, ...) {
