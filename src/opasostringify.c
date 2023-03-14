@@ -177,6 +177,15 @@ static int opasoStringifyInternal(const uint8_t* src, const char* space, unsigne
 			opabigdec bd;
 			opabigdecInit(&bd);
 			int err = opabigdecLoadSO(&bd, src);
+			if (!err && opabigdecIsZero(&bd) && (*src == OPADEF_NEGVARINT || *src == OPADEF_NEGBIGINT || *src == OPADEF_POSNEGVARDEC || *src == OPADEF_NEGNEGVARDEC || *src == OPADEF_POSNEGBIGDEC || *src == OPADEF_NEGNEGBIGDEC)) {
+				// opabigdec does not preserve the negative sign for zero; however it does preserve the exponent for zero
+				// therefore, a '-' sign is prepended before the number if the number is negative zero (with any exponent)
+				// note: the number is negated here in case opabigdec supports negative zeroes in the future.
+				err = opabigdecNegate(&bd, &bd);
+				if (!err) {
+					err = opabuffAppend(b, "-", 1);
+				}
+			}
 			if (!err) {
 				size_t maxlen = opabigdecMaxStringLen(&bd, 10);
 				size_t origLen = opabuffGetLen(b);

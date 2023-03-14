@@ -63,7 +63,7 @@ int opabigdecIsFinite(const opabigdec* a) {
 	return a->inf == 0;
 }
 
-static int opabigdecNegate(opabigdec* dst, const opabigdec* src) {
+int opabigdecNegate(opabigdec* dst, const opabigdec* src) {
 	int err = opabigdecCopy(dst, src);
 	if (!err) {
 		if (dst->inf) {

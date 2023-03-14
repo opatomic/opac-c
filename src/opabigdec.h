@@ -30,6 +30,7 @@ int opabigdecIsFinite(const opabigdec* a);
 int opabigdecSet64(opabigdec* a, uint64_t val, int isNeg, int32_t exp);
 int opabigdecGetMag64(const opabigdec* a, uint64_t* pVal);
 
+int opabigdecNegate(opabigdec* dst, const opabigdec* src);
 int opabigdecAdd(opabigdec* result, const opabigdec* a, const opabigdec* b);
 int opabigdecSub(opabigdec* result, const opabigdec* a, const opabigdec* b);
 int opabigdecMul(opabigdec* result, const opabigdec* a, const opabigdec* b);

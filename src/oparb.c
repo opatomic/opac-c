@@ -146,7 +146,19 @@ void oparbAddNumStr(oparb* rb, const char* s, const char* end) {
 		opabigdecInit(&bd);
 		rb->err = opabigdecFromStr(&bd, s, end, 10);
 		if (!rb->err) {
-			oparbAddBigDec(rb, &bd);
+			if (opabigdecIsZero(&bd) && end > s && s[0] == '-') {
+				if (bd.exponent == 0) {
+					oparbWriteVarint(rb, OPADEF_NEGVARINT, 0);
+				} else if (bd.exponent > 0) {
+					oparbWriteVarint(rb, OPADEF_POSNEGVARDEC, bd.exponent);
+					oparbAppend1(rb, 0);
+				} else {
+					oparbWriteVarint(rb, OPADEF_NEGNEGVARDEC, 0 - bd.exponent);
+					oparbAppend1(rb, 0);
+				}
+			} else {
+				oparbAddBigDec(rb, &bd);
+			}
 		}
 		opabigdecFree(&bd);
 	}
